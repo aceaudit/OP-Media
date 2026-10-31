@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  #wrap { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="1080" height="1920"></canvas>
+  <div class="hook" id="h1" style="top:190px">Signs you're an<br><span class="g">overthinker</span></div>
+  <div class="hook small" id="h1b" style="top:352px">Count how many are you.</div>
+  <div class="hook" id="m1" style="top:220px">Comment your <span class="g">score</span>.</div>
+  <div class="hook mid" id="m2" style="top:440px">Your mind works hard.<br><span class="g">Let it rest today.</span></div>
+</div>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script>
+initCanvas('c');
+const DUR = 15, BPM = 128, BAR = 240 / BPM, BEAT = 60 / BPM;
+const dust = makeDust(40);
+const ITEMS = ['You replay conversations from days ago.', 'You read “ok.” as anger.', 'You rehearse phone calls before making them.',
+  'You win arguments in the shower.', 'You reread a text five times before sending it.', "You're counting right now."];
+const TI = ITEMS.map((_, k) => BEAT + k * BAR), T_POP = 6 * BAR, T_M2 = T_POP + 1.25;
+const K = 1.7; setFigureScale(K);
+const FX = 430, FY = 1460, CARDY = 520;
+const BX = 680, BY = 925;
+// scribble path inside the bubble (deterministic)
+seed = 62; const SCR = []; { let x = 0, y = 0, a = 0; for (let i = 0; i < 520; i++) { a += (rand() - 0.5) * 2.4; let nx = x + Math.cos(a) * 0.075, ny = y + Math.sin(a) * 0.075; if (Math.hypot(nx, ny) > 0.95) { a += Math.PI * (0.6 + 0.4 * rand()); nx = x + Math.cos(a) * 0.075; ny = y + Math.sin(a) * 0.075; } x = nx; y = ny; SCR.push([x, y]); } }
+function scribble(n, r, t) {
+  const cnt = Math.floor(lerp(40, SCR.length, n / 6));
+  ctx.save(); ctx.translate(BX, BY); ctx.beginPath();
+  for (let i = 0; i < cnt; i++) { const [x, y] = SCR[i]; const j = 2.5 * Math.sin(t * 9 + i); const px = x * r * 0.86 + j, py = y * r * 0.66 + j; if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }
+  ctx.strokeStyle = `rgba(255,201,94,${0.6 + 0.06 * n})`; ctx.lineWidth = 3.4; ctx.lineJoin = 'round'; ctx.shadowColor = 'rgba(255,180,60,0.5)'; ctx.shadowBlur = 8; ctx.stroke(); ctx.restore();
+}
+function cloud(x, y, r, a) {
+  ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = 'rgba(30,28,34,0.96)'; ctx.strokeStyle = 'rgba(240,238,232,0.85)'; ctx.lineWidth = 4;
+  const bumps = 11; ctx.beginPath();
+  for (let i = 0; i <= bumps; i++) { const th = (i / bumps) * Math.PI * 2, th2 = ((i + 0.5) / bumps) * Math.PI * 2;
+    const p = [x + Math.cos(th) * r * 1.1, y + Math.sin(th) * r * 0.85], q = [x + Math.cos(th2) * r * 1.38, y + Math.sin(th2) * r * 1.1];
+    if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.quadraticCurveTo(qPrev[0], qPrev[1], p[0], p[1]); var qPrev = q; }
+  ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+}
+function armIK(S, T) {
+  const dx = T[0] - S[0], dy = T[1] - S[1], l1 = L.upper, l2 = L.fore;
+  const d = Math.min(Math.hypot(dx, dy), (l1 + l2) * 0.999), a = Math.atan2(dx, dy);
+  const c1 = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1)), th = Math.acos(clamp((l1 * l1 + l2 * l2 - d * d) / (2 * l1 * l2), -1, 1));
+  return [a - c1, Math.PI - th];
+}
+function itemCard(t) {
+  if (t >= T_POP) return;
+  let k = -1; for (let i = 0; i < 6; i++) if (t >= TI[i]) k = i; if (k < 0) return;
+  const sc = popK(t, TI[k], 0.22);
+  ctx.save(); ctx.translate(540, CARDY); ctx.scale(sc, sc);
+  ctx.fillStyle = 'rgba(22,21,26,0.95)'; ctx.strokeStyle = k === 5 ? '#ffc95e' : 'rgba(255,255,255,0.18)'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.roundRect(-470, -105, 940, 210, 34); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(-385, 0, 46, 0, Math.PI * 2); ctx.fillStyle = '#ffc95e'; ctx.shadowColor = 'rgba(255,180,60,0.6)'; ctx.shadowBlur = 20; ctx.fill(); ctx.shadowBlur = 0;
+  label(String(k + 1), -385, 18, '#1a1408', 50, 0, 700);
+  ctx.font = '700 46px Poppins'; ctx.fillStyle = '#f4f2ee'; ctx.textAlign = 'left';
+  const words = ITEMS[k].split(' '), lines = []; let cur = '';
+  for (const w of words) { const tt = cur ? cur + ' ' + w : w; if (ctx.measureText(tt).width > 720 && cur) { lines.push(cur); cur = w; } else cur = tt; } lines.push(cur);
+  lines.forEach((l, i) => ctx.fillText(l, -305, 16 + (i - (lines.length - 1) / 2) * 60));
+  ctx.restore();
+}
+function tally(t) {
+  const a = t < T_POP ? 1 : 1 - smooth(T_POP, T_POP + 0.3, t); if (a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  for (let i = 0; i < 6; i++) { const x = 540 + (i - 2.5) * 74, y = 690, on = t >= TI[i], k = on ? popK(t, TI[i], 0.25) : 1;
+    ctx.save(); ctx.translate(x, y); ctx.scale(k, k); ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2);
+    if (on) { ctx.fillStyle = '#ffc95e'; ctx.shadowColor = 'rgba(255,180,60,0.7)'; ctx.shadowBlur = 16; ctx.fill(); ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#1a1408'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-9, 1); ctx.lineTo(-2, 8); ctx.lineTo(10, -7); ctx.stroke(); }
+    else { ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 3; ctx.stroke(); }
+    ctx.restore(); }
+  ctx.restore();
+}
+window.renderFrame = (t) => {
+  background(t, dust);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  let n = 0; for (let i = 0; i < 6; i++) if (t >= TI[i]) n = i + 1;
+  const popped = t >= T_POP;
+  // bubble
+  const nS = n === 0 ? 0 : n - 1 + easeOutBack(clamp((t - TI[n - 1]) / 0.3));
+  const r = 70 + 19 * nS + 3 * Math.sin(t * 7) * (n / 6);
+  const relax = smooth(T_POP, T_POP + 0.6, t);
+  if (!popped) {
+    // small trail bubbles from his head
+    [[0.25, 14], [0.5, 20]].forEach(([u, rr]) => { ctx.save(); ctx.fillStyle = 'rgba(30,28,34,0.96)'; ctx.strokeStyle = 'rgba(240,238,232,0.85)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(lerp(FX + 150, BX - 60, u), lerp(1105, BY + r * 0.95, u), rr, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore(); });
+    const shake = n >= 4 ? (n - 3) * 2.2 : 0;
+    ctx.save(); ctx.translate(shake * Math.sin(t * 53), shake * Math.cos(t * 47));
+    cloud(BX, BY, r, 1); scribble(n, r, t); ctx.restore();
+  } else {
+    burst(BX, BY, t, T_POP, 50, ['#ffc95e', '#f4f2ee', '#f0ae36'], 1300, 1.2, 62);
+    ringFlash(BX, BY, t, T_POP, '255,255,255', r * 0.6, r * 2.4, 0.45, 8);
+    const kc = popK(t, T_POP + 0.9, 0.3);
+    if (kc > 0) { const cr = 62 * kc;
+      [[0.3, 10], [0.6, 14]].forEach(([u, rr]) => { ctx.save(); ctx.globalAlpha = clamp((t - T_POP - 0.9) / 0.2); ctx.fillStyle = 'rgba(30,28,34,0.96)'; ctx.strokeStyle = 'rgba(240,238,232,0.85)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(lerp(FX + 120, BX - 40, u), lerp(1080, BY + 40 + cr * 0.95, u), rr * kc, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.restore(); });
+      cloud(BX, BY + 40, cr, 1);
+      ctx.save(); ctx.translate(BX, BY + 40); ctx.beginPath(); for (let x = -46; x <= 46; x += 2) { const y = 7 * Math.sin(x / 11 + t * 2.4); if (x === -46) ctx.moveTo(x * kc, y * kc); else ctx.lineTo(x * kc, y * kc); }
+      ctx.strokeStyle = '#ffc95e'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.shadowColor = 'rgba(255,180,60,0.7)'; ctx.shadowBlur = 12; ctx.stroke(); ctx.restore(); }
+  }
+  // figure on a box, hands on head → relaxes after the pop
+  const b = Math.sin(t * 2.2);
+  let P = { t: lerp(0.42, 0.02, relax) + 0.01 * b, h: lerp(0.45, -0.15, relax), hipN: 1.55, kneeN: 1.5, hipF: 1.45, kneeF: 1.42, shN: 0, elN: 0, shF: 0, elF: 0 };
+  let J = solve(P, FX, FY, 0);
+  const hdN = [J.head[0] + 6, J.head[1] - 4], hdF = [J.head[0] - 16, J.head[1] - 10];
+  const kneeTop = [J.kN[0] - 10, J.kN[1] - 14];
+  const [s1, e1] = armIK(J.sh, [lerp(hdN[0], kneeTop[0], relax), lerp(hdN[1], kneeTop[1], relax)]);
+  const [s2, e2] = armIK(J.sh, [lerp(hdF[0], kneeTop[0] - 20, relax), lerp(hdF[1], kneeTop[1] + 4, relax)]);
+  P = { ...P, shN: s1, elN: e1, shF: s2, elF: e2 }; J = solve(P, FX, FY, 0);
+  // box
+  ctx.save(); ctx.fillStyle = '#1d1c21'; ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(J.pel[0] - 80, J.pel[1] + 14, 150, FY - J.pel[1] - 14, 12); ctx.fill(); ctx.stroke(); ctx.restore();
+  floorLine(FY + 2, 0.24);
+  drawFigure(ctx, J, GOLD, GOLD_FAR, GOLD_GLOW, 20 + 16 * relax);
+  itemCard(t); tally(t);
+  vignette();
+  pop($('h1'), 0, T_POP, t); pop($('h1b'), 0, T_POP, t);
+  pop($('m1'), T_POP, 99, t); pop($('m2'), T_M2, 99, t);
+  return true;
+};
+window.__allSteps = { bpm: BPM, items: TI, pop: T_POP, m2: T_M2 };
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>

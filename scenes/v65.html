@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  #wrap { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="1080" height="1920"></canvas>
+  <div class="hook" id="h1" style="top:170px">Find the <span class="g">odd one out</span><br>in 4 seconds</div>
+  <div class="hook" id="r1" style="top:200px">Found it?</div>
+  <div class="hook" id="h2" style="top:170px">Harder.<br><span class="g">4 seconds.</span></div>
+  <div class="hook" id="m1" style="top:170px">The different one is<br>the one <span class="g">you notice</span>.</div>
+  <div class="hook mid" id="m2" style="top:1360px"><span class="tag">Stop trying to blend in.</span></div>
+</div>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script>
+initCanvas('c');
+const DUR = 15, BPM = 120;
+const dust = makeDust(40);
+const COLS = 6, ROWS = 6, GX0 = 90, GY0 = 420, CW = 150, CH = 150;
+const R1 = { t0: 0, ts: 0.3, tr: 4.3, odd: [5, 5] }, R2 = { t0: 5.6, ts: 5.9, tr: 9.9, odd: [1, 2] };
+const T_M1 = 11.2, T_M2 = 12.6;
+const Kf = 0.44;
+function mirror(J, x0) { const o = {}; for (const k in J) o[k] = Array.isArray(J[k]) ? [2 * x0 - J[k][0], J[k][1]] : J[k]; return o; }
+function tiny(g, cx, fy, kind) {
+  setFigureScale(Kf);
+  let P, flip = false;
+  if (kind === 'right' || kind === 'left') { P = walkPose(0.9, 0.05); flip = kind === 'left'; }
+  else if (kind === 'run') P = runPose(1.1, 1);
+  else P = walkPose(1.1, 0.05);
+  let J = solve(P, cx, fy, 0); if (flip) J = mirror(J, cx);
+  drawFigure(g, J, GOLD, GOLD_FAR, 'rgba(255,180,60,0.0)', 0);
+}
+function buildGrid(kindAll, kindOdd, odd) {
+  const cv = document.createElement('canvas'); cv.width = 1080; cv.height = 1920; const g = cv.getContext('2d');
+  const cells = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const cx = GX0 + c * CW + CW / 2 - 40, fy = GY0 + r * CH + CH - 14, isOdd = c === odd[0] && r === odd[1];
+    tiny(g, cx + 40, fy, isOdd ? kindOdd : kindAll); cells.push([cx + 40, fy, isOdd]);
+  }
+  return { cv, cells };
+}
+let G1 = null, G2 = null;
+function grid(G, R, t, keepDim) {
+  if (!G) return;
+  const rev = t >= R.tr, dim = rev ? smooth(R.tr, R.tr + 0.25, t) : 0;
+  ctx.save(); ctx.globalAlpha = 1 - 0.78 * dim; ctx.drawImage(G.cv, 0, 0); ctx.restore();
+  if (rev) {
+    const [x, fy] = G.cells.find((c) => c[2]); const cy = fy - 58;
+    const k = 1 + 0.9 * easeOutBack(clamp((t - R.tr) / 0.3));
+    ctx.save(); ctx.translate(x, cy); ctx.scale(k, k); ctx.translate(-x, -cy);
+    ctx.fillStyle = 'rgba(18,17,21,0.95)'; ctx.beginPath(); ctx.arc(x, cy, 70, 0, 7); ctx.fill();
+    ctx.shadowColor = 'rgba(255,180,60,0.9)'; ctx.shadowBlur = 20; ctx.strokeStyle = '#ffc95e'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(x, cy, 70, 0, 7); ctx.stroke(); ctx.shadowBlur = 0;
+    tiny(ctx, x, fy, R === R1 ? 'left' : 'walk'); ctx.restore();
+    ringFlash(x, cy, t, R.tr, '255,201,94', 60, 360, 0.5, 8);
+  }
+  setFigureScale(1);
+}
+window.renderFrame = (t) => {
+  if (!G1) { G1 = buildGrid('right', 'left', R1.odd); G2 = buildGrid('run', 'walk', R2.odd); }
+  background(t, dust);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // grid panel
+  ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(GX0 - 20, GY0 - 20, COLS * CW + 40, ROWS * CH + 40, 30); ctx.fill(); ctx.stroke(); ctx.restore();
+  if (t < R2.t0) grid(G1, R1, t); else { const k = popK(t, R2.t0, 0.25); ctx.save(); ctx.translate(540, 960); ctx.scale(k, k); ctx.translate(-540, -960); grid(G2, R2, t); ctx.restore(); }
+  timerBar(540, 1390, 420, R1.ts, R1.tr, t); timerBar(540, 1390, 420, R2.ts, R2.tr, t);
+  if (t >= R1.tr && t < R2.t0) pill('Walking the other way', 540, 1400, t, R1.tr + 0.2, { size: 34 });
+  if (t >= R2.tr && t < T_M2 - 0.05) pill('Walking, not running', 540, 1400, t, R2.tr + 0.2, { size: 34 });
+  vignette();
+  pop($('h1'), 0, R1.tr, t); pop($('r1'), R1.tr, R2.t0, t); pop($('h2'), R2.t0, R2.tr, t); pop($('m1'), R2.tr + 0.0, 99, t); pop($('m2'), T_M2, 99, t);
+  return true;
+};
+window.__allSteps = { bpm: BPM, r1: R1, r2: R2, m1: T_M1, m2: T_M2 };
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>

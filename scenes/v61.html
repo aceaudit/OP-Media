@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  #wrap { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="1080" height="1920"></canvas>
+  <div class="hook" id="h1" style="top:200px">Which would<br>you <span class="g">take</span>?</div>
+  <div class="hook" id="m1" style="top:200px">Small wins look<br>like <span class="g">nothing</span>…</div>
+  <div class="hook" id="m2" style="top:372px; font-size:76px"><span class="g">until they don't.</span></div>
+</div>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script>
+initCanvas('c');
+const DUR = 15, BPM = 120, B = 60 / BPM;
+const dust = makeDust(40);
+const T_C = 2.5;                                   // counting starts (day 1)
+const DAYT = [];                                    // video time each day lands
+for (let d = 1; d <= 20; d++) DAYT[d] = T_C + (d - 1) * 0.125;
+for (let d = 21; d <= 27; d++) DAYT[d] = 6.0 + (d - 21) * 0.25;
+DAYT[28] = 8.0; DAYT[29] = 9.0; DAYT[30] = 10.0;
+const T_M1 = 11.0, T_M2 = 12.6, T_P20 = DAYT[20] + 0.05;
+const val = (d) => 0.01 * Math.pow(2, d - 1);
+function dayAt(t) { let d = 0; for (let k = 1; k <= 30; k++) if (t >= DAYT[k]) d = k; return d; }
+const fmt = (v) => '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const BASEY = 1400, MAXH = 515, MAXV = val(30);
+const AX = 320, BX = 760, BW = 230;
+function bar(x, h, col, glowA, top) {
+  ctx.save();
+  const g = ctx.createLinearGradient(0, BASEY - h, 0, BASEY);
+  if (col === 'gold') { g.addColorStop(0, '#ffe2a0'); g.addColorStop(0.4, '#f0ae36'); g.addColorStop(1, '#8a5a12'); ctx.shadowColor = `rgba(255,180,60,${glowA})`; }
+  else { g.addColorStop(0, '#ffffff'); g.addColorStop(0.5, '#b9b6b0'); g.addColorStop(1, '#55534f'); ctx.shadowColor = `rgba(255,255,255,${glowA * 0.5})`; }
+  ctx.fillStyle = g; ctx.shadowBlur = 40;
+  if (h > 0.5) { ctx.beginPath(); ctx.roundRect(x - BW / 2, BASEY - h, BW, h, [18, 18, 0, 0]); ctx.fill(); }
+  ctx.restore();
+}
+function card(x, y, letter, big, small, col, t, t0, hi) {
+  const k = popK(t, t0, 0.25); if (k <= 0) return;
+  ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
+  ctx.fillStyle = 'rgba(22,21,26,0.95)'; ctx.strokeStyle = hi ? '#ffc95e' : 'rgba(255,255,255,0.22)'; ctx.lineWidth = hi ? 5 : 3;
+  if (hi) { ctx.shadowColor = 'rgba(255,180,60,0.7)'; ctx.shadowBlur = 30; }
+  ctx.beginPath(); ctx.roundRect(-190, -120, 380, 250, 30); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
+  ctx.beginPath(); ctx.arc(0, -120, 34, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+  label(letter, 0, -107, '#141210', 38, 0, 700);
+  ctx.font = '700 60px Poppins'; ctx.textAlign = 'center'; ctx.fillStyle = '#f4f2ee'; ctx.fillText(big, 0, 0);
+  small.forEach((s, i) => label(s, 0, 52 + i * 38, 'rgba(240,238,232,0.78)', 28, 0, 500));
+  ctx.restore();
+}
+window.renderFrame = (t) => {
+  background(t, dust);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const d = dayAt(t);
+  // smooth B value: exponential roll from previous day to this day over a short time
+  let vB = 0.01;
+  if (d >= 1) { const prev = d > 1 ? val(d - 1) : 0.01, dt = Math.min(0.2, (DAYT[d + 1] || 99) - DAYT[d]) * 0.9, u = easeOut((t - DAYT[d]) / dt); vB = d === 1 ? 0.01 : prev * Math.pow(2, u); }
+  const hA = MAXH * 1e6 / MAXV, hB = MAXH * vB / MAXV;
+  const passed = t >= DAYT[28], end = t >= DAYT[30];
+  const [sx, sy] = shakeXY(t, DAYT[28], 12, 0.2), [sx2, sy2] = shakeXY(t, DAYT[30], 18, 0.25);
+  ctx.save(); ctx.translate(sx + sx2, sy + sy2);
+  // option cards (become headers)
+  card(AX, 655, 'A', '$1,000,000', ['today'], '#e6e3dd', t, -1, false);
+  card(BX, 655, 'B', '1¢', ['doubled every day', 'for 30 days'], '#ffc95e', t, -1, passed);
+  // bars
+  const grow = smooth(T_C - 0.4, T_C, t);
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(150, BASEY); ctx.lineTo(930, BASEY); ctx.stroke();
+  bar(AX, hA * grow, 'white', passed ? 0.2 : 0.6);
+  bar(BX, hB, 'gold', 0.4 + 0.6 * (passed ? 1 : 0));
+  // A dims once B passes
+  if (passed) { ctx.save(); ctx.globalAlpha = 0.45 * smooth(DAYT[28], DAYT[28] + 0.4, t); ctx.fillStyle = '#08080a'; ctx.fillRect(AX - BW / 2 - 2, BASEY - hA - 70, BW + 4, hA + 70); ctx.restore(); }
+  // value labels
+  ctx.save(); ctx.globalAlpha = grow; label('$1,000,000', AX, BASEY - hA * grow - 26, '#f4f2ee', 40, 0, 700); ctx.restore();
+  if (t >= T_C - 0.2) { const k = punch(t, DAYT[Math.max(1, d)], 0.08, 0.12); ctx.save(); ctx.translate(BX, BASEY - hB - 30); ctx.scale(k, k);
+    label(fmt(vB), 0, 0, passed ? '#ffd98a' : '#ffe2a6', end ? 46 : 40, 0, 700); ctx.restore(); }
+  // crossing line on day 28
+  if (passed) ringFlash(BX, BASEY - hB, t, DAYT[28], '255,201,94', 30, 380, 0.5, 10);
+  if (t >= T_P20 && t < DAYT[21] + 0.1) pill('Day 20. Still only $5,242.88', 540, 1470, t, T_P20, { bg: '#f4f2ee', size: 34 });
+  if (passed && t < DAYT[30]) pill('Day 28: B passes A', 540, 1470, t, DAYT[28], { size: 36 });
+  if (end) pill('B wins by over $4.3 million', 540, 1470, t, DAYT[30], { size: 36 });
+  if (t < T_C + 0.1) pill('Comment A or B', 540, 1080, t, -1, { bg: '#f4f2ee', size: 38 });
+  ctx.restore();
+  burst(BX, BASEY - hB, t, DAYT[30], 60, ['#ffc95e', '#fff', '#f0ae36'], 1500, 1.5, 61);
+  ringFlash(BX, BASEY - hB, t, DAYT[30], '255,201,94', 40, 700, 0.7, 14);
+  // day counter (top)
+  if (t >= T_C && t < T_M1) { const k = punch(t, DAYT[d], 0.1, 0.1); ctx.save(); ctx.translate(540, 300); ctx.scale(k, k);
+    label('DAY', 0, -70, 'rgba(240,238,232,0.7)', 34, 10, 700); bigNumber(String(d), 0, 40, d >= 28 ? '#ffd98a' : '#f4f2ee', 'rgba(255,180,60,0.7)', 1, 130); ctx.restore(); }
+  timerBar(540, 1470, 420, 0.3, T_C, t);
+  vignette();
+  flash(t, DAYT[30], 0.12, 0.2);
+  pop($('h1'), 0, T_C, t); pop($('m1'), T_M1, 99, t); pop($('m2'), T_M2, 99, t);
+  return true;
+};
+window.__allSteps = { bpm: BPM, days: DAYT.slice(1), c: T_C, p20: T_P20, m1: T_M1, m2: T_M2 };
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>

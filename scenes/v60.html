@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  #wrap { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="1080" height="1920"></canvas>
+  <div class="hook" id="h1" style="top:250px">Can you read this<br>in <span class="g">3 seconds</span>?</div>
+  <div class="hook" id="h2" style="top:290px">Harder. <span class="g">2.5 seconds</span>.</div>
+  <div class="hook" id="h3" style="top:290px">Last one. <span class="g">2 seconds</span>.</div>
+  <div class="hook" id="m1" style="top:250px">Your brain fixed every<br>word <span class="g">on its own</span>.</div>
+  <div class="hook mid" id="m2" style="top:1330px">So be careful what<br><span class="g">you tell yourself.</span></div>
+</div>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script>
+initCanvas('c');
+const DUR = 15, BPM = 128, BAR = 240 / BPM;
+const dust = makeDust(40);
+const ROUNDS = [
+  { cor: 'Your brain is amazing.', scr: 'Yuor biarn is amzaing.', t0: 0, ts: 0.25, tu: 3.05, tEnd: 2 * BAR },
+  { cor: 'You are stronger than you think.', scr: 'You are sntorger tahn you tnihk.', t0: 2 * BAR, ts: 2 * BAR + 0.2, tu: 2 * BAR + 2.7, tEnd: 4 * BAR },
+  { cor: "Progress isn't linear, but it still counts.", scr: "Pgorerss isn't lnaeir, but it sitll cnouts.", t0: 4 * BAR, ts: 4 * BAR + 0.2, tu: 4 * BAR + 2.2, tEnd: 6 * BAR },
+];
+const T_RECAP = 6 * BAR, T_M2 = T_RECAP + 1.6;
+const FONT = '700 76px Poppins', LH = 104, MAXW = 860, CY = 880;
+function layout(R) {
+  ctx.font = FONT;
+  const cw = R.cor.split(' '), sw = R.scr.split(' ');
+  const space = ctx.measureText(' ').width, lines = []; let cur = [], w = 0;
+  cw.forEach((word, i) => { const ww = ctx.measureText(word).width; if (cur.length && w + space + ww > MAXW) { lines.push({ words: cur, w }); cur = []; w = 0; } cur.push(i); w += (cur.length > 1 ? space : 0) + ww; });
+  lines.push({ words: cur, w });
+  const letters = []; const y0 = CY - (lines.length - 1) * LH / 2;
+  lines.forEach((ln, li) => {
+    let x = 540 - ln.w / 2;
+    ln.words.forEach((wi) => {
+      const C = cw[wi], Sw = sw[wi];
+      const px = (s, i) => ctx.measureText(s.slice(0, i)).width;
+      const used = new Array(C.length).fill(false);
+      for (let i = 0; i < Sw.length; i++) {
+        // target index: same char, nearest unused
+        let best = -1; for (let j = 0; j < C.length; j++) if (!used[j] && C[j] === Sw[i] && (best < 0 || Math.abs(j - i) < Math.abs(best - i))) best = j;
+        used[best] = true;
+        letters.push({ ch: Sw[i], x0: x + px(Sw, i), x1: x + px(C, best), y: y0 + li * LH, moves: best !== i, dir: best > i ? -1 : 1, wi });
+      }
+      x += ctx.measureText(C).width + space;
+    });
+  });
+  return { letters, lines: lines.length, y0 };
+}
+
+function drawRound(R, k, t) {
+  if (!R.L) R.L = layout(R);
+  const { letters, lines } = R.L;
+  const vis = t >= R.t0 && t < R.tEnd; if (!vis) return;
+  const kIn = R.t0 === 0 ? 1 : popK(t, R.t0, 0.25);
+  const done = smooth(R.tu + 0.35, R.tu + 0.6, t);
+  // card
+  const H = lines * LH + 150;
+  ctx.save(); ctx.translate(540, CY); ctx.scale(kIn * punch(t, R.tu + 0.4, 0.03), kIn * punch(t, R.tu + 0.4, 0.03)); ctx.translate(-540, -CY);
+  ctx.fillStyle = 'rgba(20,19,24,0.92)'; ctx.strokeStyle = done > 0 ? `rgba(255,201,94,${0.35 + 0.5 * done})` : 'rgba(255,255,255,0.14)'; ctx.lineWidth = 4;
+  ctx.shadowColor = `rgba(255,180,60,${0.45 * done})`; ctx.shadowBlur = 40 * done;
+  ctx.beginPath(); ctx.roundRect(70, CY - H / 2, 940, H, 36); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
+  pill(`${k + 1} / 3`, 540, CY - H / 2, t, R.t0 === 0 ? -1 : R.t0, { bg: done > 0 ? '#ffc95e' : '#f4f2ee', size: 26 });
+  ctx.font = FONT; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  letters.forEach((l, i) => {
+    const d = l.wi * 0.035, u = easeInOut((t - R.tu - d) / 0.34);
+    const x = lerp(l.x0, l.x1, u), y = l.y + 26 + (l.moves ? l.dir * 46 * Math.sin(Math.PI * u) : 0);
+    const arrive = l.moves ? Math.exp(-Math.max(0, t - R.tu - d - 0.34) / 0.08) * (t > R.tu + d + 0.34 ? 1 : 0) : 0;
+    ctx.save(); ctx.translate(x, y); const sc = 1 + 0.18 * arrive; ctx.scale(sc, sc);
+    ctx.fillStyle = done > 0 ? `rgb(${Math.round(lerp(244, 255, done))},${Math.round(lerp(242, 214, done))},${Math.round(lerp(238, 138, done))})` : (u > 0 && u < 1 && l.moves ? '#ffd98a' : '#f4f2ee');
+    if (done > 0) { ctx.shadowColor = 'rgba(255,180,60,0.6)'; ctx.shadowBlur = 16 * done; }
+    ctx.fillText(l.ch, 0, 0); ctx.restore();
+  });
+  ctx.restore();
+  timerBar(540, CY + H / 2 + 70, 480, R.ts, R.tu, t);
+  if (t >= R.tu + 0.4) { burst(540, CY, t, R.tu + 0.4, 30, ['#ffc95e', '#fff', '#f0ae36'], 1000, 1.0, 60 + k); ringFlash(540, CY, t, R.tu + 0.4, '255,201,94', 200, 640, 0.5, 8); }
+}
+function recap(t) {
+  if (t < T_RECAP) return;
+  ctx.save(); const k = popK(t, T_RECAP, 0.3); ctx.translate(540, 880); ctx.scale(k, k);
+  ctx.fillStyle = 'rgba(20,19,24,0.92)'; ctx.strokeStyle = 'rgba(255,201,94,0.7)'; ctx.lineWidth = 4; ctx.shadowColor = 'rgba(255,180,60,0.35)'; ctx.shadowBlur = 30;
+  ctx.beginPath(); ctx.roundRect(-470, -250, 940, 500, 36); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
+  ctx.textAlign = 'center'; ctx.font = '700 48px Poppins';
+  const lines = [['Your brain is amazing.'], ['You are stronger than you think.'], ["Progress isn't linear,", 'but it still counts.']];
+  let y = -150;
+  lines.forEach((grp, i) => { const a = smooth(T_RECAP + 0.15 + i * 0.25, T_RECAP + 0.4 + i * 0.25, t);
+    grp.forEach((s) => { ctx.globalAlpha = a; ctx.fillStyle = '#ffd98a'; ctx.fillText(s, 0, y + 16); y += 62; }); y += 36; });
+  ctx.restore();
+}
+window.renderFrame = (t) => {
+  background(t, dust);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ROUNDS.forEach((R, k) => drawRound(R, k, t));
+  recap(t);
+  vignette();
+  pop($('h1'), 0, ROUNDS[1].t0, t); pop($('h2'), ROUNDS[1].t0, ROUNDS[2].t0, t); pop($('h3'), ROUNDS[2].t0, T_RECAP, t);
+  pop($('m1'), T_RECAP, 99, t); pop($('m2'), T_M2, 99, t);
+  return true;
+};
+window.__allSteps = { bpm: BPM, bar: BAR, rounds: ROUNDS.map((R) => ({ t0: R.t0, ts: R.ts, tu: R.tu, tEnd: R.tEnd })), recap: T_RECAP, m2: T_M2 };
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>

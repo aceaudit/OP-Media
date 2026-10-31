@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  #wrap { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="1080" height="1920"></canvas>
+  <div class="hook" id="h1" style="top:150px">Something in this picture<br>is <span class="g">changing</span>. Spot it?</div>
+  <div class="hook" id="r1" style="top:150px">The <span class="g">whole wall</span><br>changed color.</div>
+  <div class="hook" id="m1" style="top:150px">Most change happens<br><span class="g">too slowly to notice.</span></div>
+  <div class="hook mid" id="m2" style="top:1440px"><span class="tag">You're changing too. Keep going.</span></div>
+</div>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script>
+initCanvas('c');
+const DUR = 15, BPM = 120;
+const T_R = 9.5, T_FL = T_R, T_FLE = T_R + 1.5, T_M1 = 11.6, T_M2 = 12.9;
+const W0 = [46, 72, 92], W1 = [112, 52, 98];          // wall: slate blue → plum
+const K = 1.6; setFigureScale(K);
+const FLOOR = 1260, FX = 400;
+function armIK(S, T) {
+  const dx = T[0] - S[0], dy = T[1] - S[1], l1 = L.upper, l2 = L.fore;
+  const d = Math.min(Math.hypot(dx, dy), (l1 + l2) * 0.999), a = Math.atan2(dx, dy);
+  const c1 = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1)), th = Math.acos(clamp((l1 * l1 + l2 * l2 - d * d) / (2 * l1 * l2), -1, 1));
+  return [a - c1, Math.PI - th];
+}
+const rgb = (c, m = 1) => `rgb(${Math.round(c[0] * m)},${Math.round(c[1] * m)},${Math.round(c[2] * m)})`;
+function wallAt(t) {
+  if (t >= T_FL && t < T_FLE) { const n = Math.floor((t - T_FL) / 0.25); return n % 2 ? W1 : W0; }   // flicker start/now
+  const u = smooth(0.3, T_R - 0.2, t);
+  return W0.map((a, i) => lerp(a, W1[i], u));
+}
+function scene(t) {
+  const W = wallAt(t);
+  // wall with soft light falloff
+  ctx.fillStyle = rgb(W); ctx.fillRect(0, 0, 1080, FLOOR);
+  const sh = ctx.createRadialGradient(560, 700, 100, 560, 700, 900); sh.addColorStop(0, 'rgba(255,240,210,0.10)'); sh.addColorStop(1, 'rgba(0,0,0,0.45)'); ctx.fillStyle = sh; ctx.fillRect(0, 0, 1080, FLOOR);
+  // floor
+  const fg = ctx.createLinearGradient(0, FLOOR, 0, 1920); fg.addColorStop(0, '#3b2d22'); fg.addColorStop(1, '#16110d'); ctx.fillStyle = fg; ctx.fillRect(0, FLOOR, 1080, 660);
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'; for (let i = 0; i < 7; i++) ctx.fillRect(0, FLOOR + 40 + i * 70, 1080, 2);
+  ctx.fillStyle = '#e8e2d6'; ctx.fillRect(0, FLOOR - 14, 1080, 14);
+  // window (daylight, static)
+  ctx.save(); ctx.fillStyle = '#9fc6e6'; ctx.fillRect(110, 520, 300, 330); const sky = ctx.createLinearGradient(0, 520, 0, 850); sky.addColorStop(0, '#bcd9ef'); sky.addColorStop(1, '#f2e6c9'); ctx.fillStyle = sky; ctx.fillRect(110, 520, 300, 330);
+  ctx.fillStyle = '#f6f3ec'; ctx.fillRect(100, 510, 320, 14); ctx.fillRect(100, 846, 320, 14); ctx.fillRect(100, 510, 14, 350); ctx.fillRect(406, 510, 14, 350); ctx.fillRect(253, 510, 12, 350); ctx.fillRect(100, 680, 320, 10);
+  ctx.fillStyle = 'rgba(255,255,255,0.8)'; const cx = 180 + (t * 6) % 80; ctx.beginPath(); ctx.arc(cx, 600, 22, 0, 7); ctx.arc(cx + 26, 592, 28, 0, 7); ctx.arc(cx + 54, 602, 20, 0, 7); ctx.fill(); ctx.restore();
+  // picture frame (static)
+  ctx.save(); ctx.fillStyle = '#2b241d'; ctx.fillRect(690, 520, 250, 200); ctx.fillStyle = '#efe7d6'; ctx.fillRect(706, 536, 218, 168);
+  ctx.fillStyle = '#7d9a8c'; ctx.beginPath(); ctx.moveTo(706, 704); ctx.lineTo(780, 600); ctx.lineTo(830, 660); ctx.lineTo(870, 620); ctx.lineTo(924, 704); ctx.fill(); ctx.fillStyle = '#f0ae36'; ctx.beginPath(); ctx.arc(880, 572, 16, 0, 7); ctx.fill(); ctx.restore();
+  // clock (ticking — a distraction)
+  ctx.save(); ctx.translate(560, 420); ctx.fillStyle = '#f4f1ea'; ctx.beginPath(); ctx.arc(0, 0, 62, 0, 7); ctx.fill(); ctx.strokeStyle = '#2a2622'; ctx.lineWidth = 6; ctx.stroke();
+  const sec = Math.floor(t * 1) / 60 * Math.PI * 2; ctx.strokeStyle = '#d4553d'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(48 * Math.sin(sec), -48 * Math.cos(sec)); ctx.stroke();
+  ctx.strokeStyle = '#2a2622'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -38); ctx.moveTo(0, 0); ctx.lineTo(26, 10); ctx.stroke(); ctx.restore();
+  // desk
+  const DT = 1080;
+  ctx.save(); ctx.fillStyle = '#5a4330'; ctx.fillRect(500, DT, 480, 22); ctx.fillStyle = '#47352a'; ctx.fillRect(520, DT + 22, 18, FLOOR - DT - 22); ctx.fillRect(942, DT + 22, 18, FLOOR - DT - 22);
+  // laptop
+  ctx.fillStyle = '#c9ccd2'; ctx.fillRect(640, DT - 8, 190, 8); ctx.save(); ctx.translate(820, DT - 6); ctx.rotate(-1.32); ctx.fillStyle = '#b5b8be'; ctx.fillRect(0, -10, 150, 10); ctx.restore();
+  // mug + steam
+  ctx.fillStyle = '#f0ae36'; ctx.beginPath(); ctx.roundRect(880, DT - 56, 44, 56, 6); ctx.fill(); ctx.strokeStyle = '#f0ae36'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(926, DT - 30, 12, -1.3, 1.3); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 4; for (let i = 0; i < 2; i++) { ctx.beginPath(); for (let y = 0; y < 70; y += 4) { const x = 893 + i * 16 + 6 * Math.sin(y / 10 - t * 3 + i); if (y === 0) ctx.moveTo(x, DT - 62 - y); else ctx.lineTo(x, DT - 62 - y); } ctx.stroke(); }
+  // plant
+  ctx.fillStyle = '#c86b4a'; ctx.beginPath(); ctx.moveTo(540, DT); ctx.lineTo(600, DT); ctx.lineTo(592, DT - 50); ctx.lineTo(548, DT - 50); ctx.fill();
+  ctx.fillStyle = '#5f9a63'; for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + (i - 2) * 0.45 + 0.06 * Math.sin(t * 1.5 + i); ctx.save(); ctx.translate(570, DT - 50); ctx.rotate(a); ctx.beginPath(); ctx.ellipse(40, 0, 42, 13, 0, 0, 7); ctx.fill(); ctx.restore(); }
+  ctx.restore();
+  // him typing
+  const typ = Math.sin(t * 22), typ2 = Math.sin(t * 22 + 1.7), look = 0.15 * Math.sin(t * 0.7);
+  let P = { t: 0.18, h: 0.12 + look, hipN: 1.52, kneeN: 1.5, hipF: 1.45, kneeF: 1.45, shN: 0, elN: 0, shF: 0, elF: 0 };
+  let J = solve(P, FX, FLOOR, 0);
+  const [s1, e1] = armIK(J.sh, [700 + 6 * typ, DT - 12 - 6 * Math.max(0, typ)]), [s2, e2] = armIK(J.sh, [670 + 6 * typ2, DT - 12 - 6 * Math.max(0, typ2)]);
+  P = { ...P, shN: s1, elN: e1, shF: s2, elF: e2 }; J = solve(P, FX, FLOOR, 0);
+  ctx.save(); ctx.fillStyle = '#2a2420'; ctx.fillRect(J.pel[0] - 80, J.pel[1] + 14, 130, 14); ctx.fillRect(J.pel[0] - 80, J.pel[1] - 150, 14, 164); ctx.fillRect(J.pel[0] - 66, J.pel[1] + 28, 12, FLOOR - J.pel[1] - 28); ctx.fillRect(J.pel[0] + 30, J.pel[1] + 28, 12, FLOOR - J.pel[1] - 28); ctx.restore();
+  drawFigure(ctx, J, GOLD, GOLD_FAR, GOLD_GLOW, 14);
+}
+window.renderFrame = (t) => {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  scene(t);
+  // dark band behind the top captions for legibility
+  const tg = ctx.createLinearGradient(0, 0, 0, 420); tg.addColorStop(0, 'rgba(0,0,0,0.55)'); tg.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = tg; ctx.fillRect(0, 0, 1080, 420);
+  timerBar(540, 1400, 460, 0.4, T_R, t);
+  if (t >= T_FL && t < T_FLE) { const n = Math.floor((t - T_FL) / 0.25); pill(n % 2 ? 'NOW' : 'START', 540, 1400, t, T_FL + n * 0.25 - 0.001, { bg: n % 2 ? '#ffc95e' : '#f4f2ee', size: 40 }); }
+  if (t >= T_FLE && t < T_M1 + 0.2) pill('START  →  NOW', 540, 1400, t, T_FLE, { size: 36 });
+  vignette();
+  pop($('h1'), 0, T_R, t); pop($('r1'), T_R, T_M1, t); pop($('m1'), T_M1, 99, t); pop($('m2'), T_M2, 99, t);
+  return true;
+};
+window.__allSteps = { bpm: BPM, r: T_R, fle: T_FLE, m1: T_M1, m2: T_M2 };
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>

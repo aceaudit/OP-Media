@@ -1,0 +1,163 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  #wrap { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="1080" height="1920"></canvas>
+  <div class="hook" id="m0" style="top:170px">Try this tonight:<br><span class="g">write it all down.</span></div>
+  <div class="hook" id="m1" style="top:170px">Once it's on paper,<br>your brain can <span class="g">let it go</span>.</div>
+  <div class="hook mid" id="m2" style="top:1420px"><span class="tag">Save this for tonight</span></div>
+</div>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script>
+initCanvas('c');
+const DUR = 15, BPM = 128, BEAT = 60 / BPM, BAR = 4 * BEAT;
+const T_X = 4 * BAR, T_PAD = T_X + 0.25, T_SLEEP = T_X + 3.1, T_M2 = T_SLEEP + 1.6;
+const THOUGHTS = ['Did I lock the door?', 'That thing I said in 2014…', 'Do fish get thirsty?', "What if I'd said it differently?", 'Should I learn Japanese?',
+  'Did I reply to that email?', 'Is it too late to start over?', 'Why did they just say “k”?', "What's my purpose?", 'I should reorganize my life.',
+  'Was that a noise?', 'Big plans for tomorrow!', 'Wait, what day is it?', 'Am I hungry?'];
+const POS = [[560, 215], [310, 330], [770, 300], [540, 420], [800, 150], [330, 440], [720, 95], [520, 110], [260, 220], [790, 410], [470, -80], [730, -200], [300, -290], [610, -400]];
+const TH = [0.35, 1.15, 1.9, 2.6, 3.2, 3.75, 4.25, 4.7, 5.1, 5.45, 5.8, 6.1, 6.4, 6.7];
+const FLY = [13, 12, 11, 10, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9], TIN = THOUGHTS.map((_, k) => T_X + 0.3 + FLY.indexOf(k) * 0.13);       // fly into the notepad
+const PADX = 540, PADY = 640, H1 = 860;
+const K = 1.45; setFigureScale(K);
+seed = 63; const STARS = Array.from({ length: 40 }, () => [rand() * 1080, rand() * 520, 0.5 + rand() * 1.5, rand() * 6]);
+function armIK(S, T) {
+  const dx = T[0] - S[0], dy = T[1] - S[1], l1 = L.upper, l2 = L.fore;
+  const d = Math.min(Math.hypot(dx, dy), (l1 + l2) * 0.999), a = Math.atan2(dx, dy);
+  const c1 = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1)), th = Math.acos(clamp((l1 * l1 + l2 * l2 - d * d) / (2 * l1 * l2), -1, 1));
+  return [a - c1, Math.PI - th];
+}
+function bubble(text, x, y, sc, a = 1) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc); ctx.globalAlpha = a;
+  ctx.font = '700 34px Poppins'; const w = ctx.measureText(text).width + 52, h = 74;
+  ctx.fillStyle = '#f4f2ee'; ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 18;
+  ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, 37); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.beginPath(); ctx.arc(-w / 2 + 34, h / 2 + 10, 9, 0, 7); ctx.arc(-w / 2 + 18, h / 2 + 26, 5, 0, 7); ctx.fill();
+  ctx.fillStyle = '#15141a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 0, 2);
+  ctx.restore();
+}
+// ---------- 3 PM (top panel, local coords 1080×960) ----------
+function scenePM(t) {
+  const g = ctx.createLinearGradient(0, 0, 0, 960); g.addColorStop(0, '#2c2216'); g.addColorStop(1, '#141110');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 1080, 960);
+  // window + sun
+  ctx.save(); ctx.fillStyle = 'rgba(255,190,100,0.10)'; ctx.strokeStyle = 'rgba(255,214,150,0.35)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.roundRect(700, 300, 260, 220, 10); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(830, 300); ctx.lineTo(830, 520); ctx.moveTo(700, 410); ctx.lineTo(960, 410); ctx.stroke();
+  ctx.fillStyle = '#ffb24a'; ctx.shadowColor = 'rgba(255,170,60,0.9)'; ctx.shadowBlur = 40; ctx.beginPath(); ctx.arc(900, 360, 26, 0, 7); ctx.fill(); ctx.restore();
+  // labels
+  label('YOUR BRAIN AT', 90, 150, 'rgba(255,226,166,0.85)', 30, 6, 700, 'left');
+  ctx.save(); ctx.font = '700 120px Poppins'; ctx.fillStyle = '#ffc95e'; ctx.shadowColor = 'rgba(255,180,60,0.6)'; ctx.shadowBlur = 24; ctx.fillText('3 PM', 82, 270); ctx.restore();
+  ctx.translate(0, -70);
+  const FY = 880, FX = 330;
+  // desk + laptop
+  ctx.save(); ctx.fillStyle = '#3a2c1d'; ctx.fillRect(470, 700, 330, 16); ctx.fillRect(490, 716, 14, FY - 716); ctx.fillRect(766, 716, 14, FY - 716);
+  ctx.fillStyle = '#5a5651'; ctx.fillRect(560, 692, 150, 8); ctx.save(); ctx.translate(700, 692); ctx.rotate(-1.25); ctx.fillStyle = '#6a6660'; ctx.fillRect(0, -6, 110, 8); ctx.restore();
+  ctx.restore();
+  // nodding off: slow droop, snap back up
+  const cyc = 2.2, ph = (t % cyc) / cyc, nod = ph < 0.85 ? easeInOut(ph / 0.85) : 1 - easeOut((ph - 0.85) / 0.15);
+  let P = { t: 0.28 + 0.12 * nod, h: 0.25 + 0.75 * nod, hipN: 1.52, kneeN: 1.5, hipF: 1.45, kneeF: 1.45, shN: 0, elN: 0, shF: 0, elF: 0 };
+  let J = solve(P, FX, FY, 0);
+  const [s1, e1] = armIK(J.sh, [560, 690]), [s2, e2] = armIK(J.sh, [535, 692]);
+  P = { ...P, shN: s1, elN: e1, shF: s2, elF: e2 }; J = solve(P, FX, FY, 0);
+  // chair
+  ctx.save(); ctx.fillStyle = '#2a2420'; ctx.fillRect(J.pel[0] - 70, J.pel[1] + 12, 120, 12); ctx.fillRect(J.pel[0] - 70, J.pel[1] - 120, 12, 132); ctx.fillRect(J.pel[0] - 60, J.pel[1] + 24, 10, FY - J.pel[1] - 24); ctx.fillRect(J.pel[0] + 36, J.pel[1] + 24, 10, FY - J.pel[1] - 24); ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(60, FY + 2, 960, 2);
+  drawFigure(ctx, J, GOLD, GOLD_FAR, GOLD_GLOW, 18);
+  // empty thought: loading spinner + zzz
+  const bx = J.head[0] + 120, by = J.head[1] - 150;
+  ctx.save(); ctx.fillStyle = 'rgba(244,242,238,0.95)'; ctx.beginPath(); ctx.ellipse(bx, by, 95, 62, 0, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(bx - 70, by + 75, 12, 0, 7); ctx.arc(bx - 90, by + 102, 7, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#15141a'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); const a0 = t * 5; ctx.arc(bx, by, 26, a0, a0 + 4.2); ctx.stroke(); ctx.restore();
+  for (let i = 0; i < 3; i++) { const u = ((t * 0.55 + i / 3) % 1); ctx.save(); ctx.globalAlpha = Math.sin(Math.PI * u); label('z', J.head[0] + 40 + 40 * u, J.head[1] - 40 - 120 * u, '#ffe2a6', 30 + 20 * u, 0, 700); ctx.restore(); }
+}
+// ---------- 3 AM (bottom panel, local coords 1080×960) ----------
+function sceneAM(t, full) {
+  const g = ctx.createLinearGradient(0, -700, 0, 960); g.addColorStop(0, '#0b1124'); g.addColorStop(1, '#05070e');
+  ctx.fillStyle = g; ctx.fillRect(0, -1200, 1080, 2400);
+  STARS.forEach(([x, y, r, p]) => { ctx.fillStyle = `rgba(220,230,255,${0.25 + 0.25 * Math.sin(t * 2 + p)})`; ctx.beginPath(); ctx.arc(x, y - 560 * full, r, 0, 7); ctx.fill(); });
+  ctx.save(); ctx.fillStyle = 'rgba(140,170,255,0.06)'; ctx.strokeStyle = 'rgba(160,190,255,0.3)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.roundRect(760, 250, 230, 200, 10); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#e8eeff'; ctx.shadowColor = 'rgba(200,215,255,0.9)'; ctx.shadowBlur = 30; ctx.beginPath(); ctx.arc(900, 320, 30, 0, 7); ctx.fill();
+  ctx.shadowBlur = 0; ctx.fillStyle = '#0b1124'; ctx.beginPath(); ctx.arc(913, 312, 26, 0, 7); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.globalAlpha = 1 - full; label('VS', 90, 110, 'rgba(180,200,255,0.8)', 30, 6, 700, 'left');
+  ctx.font = '700 120px Poppins'; ctx.fillStyle = '#9fc2ff'; ctx.shadowColor = 'rgba(120,160,255,0.6)'; ctx.shadowBlur = 24; ctx.fillText('3 AM', 82, 230); ctx.restore();
+  // bed
+  const BY = 560;
+  ctx.save(); ctx.fillStyle = '#1b2135'; ctx.beginPath(); ctx.roundRect(120, BY - 10, 660, 70, 14); ctx.fill();
+  ctx.fillStyle = '#121726'; ctx.fillRect(120, BY - 140, 22, 230); ctx.fillRect(758, BY - 70, 22, 160); ctx.fillRect(140, BY + 60, 14, 30); ctx.fillRect(744, BY + 60, 14, 30);
+  ctx.fillStyle = '#d9def0'; ctx.beginPath(); ctx.roundRect(150, BY - 52, 170, 46, 22); ctx.fill(); ctx.restore();
+  // him, lying on his back (standing rig rotated), head on the pillow
+  const asleep = smooth(T_SLEEP, T_SLEEP + 0.5, t);
+  const P = { ...tallPose(0), shN: 0.05, elN: 0.1, shF: -0.05, elF: 0.12 };
+  ctx.save(); ctx.translate(LX, BY - 34); ctx.rotate(-Math.PI / 2); drawFigure(ctx, solve(P, 0, 260, 0), GOLD, GOLD_FAR, GOLD_GLOW, 16); ctx.restore();
+  // blanket
+  ctx.save(); ctx.fillStyle = '#2b3a66'; ctx.strokeStyle = 'rgba(160,190,255,0.25)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(345, BY - 40);
+  for (let x = 345; x <= 770; x += 15) ctx.lineTo(x, BY - 44 - 6 * Math.sin(x / 40 + t * (1.2 - 0.6 * asleep)));
+  ctx.lineTo(770, BY + 4); ctx.lineTo(345, BY + 4); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+}
+const LX = 357;
+window.renderFrame = (t) => {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#05070e'; ctx.fillRect(0, 0, 1080, 1920);
+  const xu = easeInOut(clamp((t - T_X) / 0.45));
+  const amTop = lerp(H1, 560, xu);
+  // 3 AM panel (full background), then the 3 PM panel on top sliding away
+  ctx.save(); ctx.translate(0, amTop); sceneAM(t, xu); ctx.restore();
+  if (xu < 1) { ctx.save(); ctx.translate(0, -H1 * xu); ctx.beginPath(); ctx.rect(0, 0, 1080, H1); ctx.clip(); scenePM(t); ctx.restore();
+    ctx.save(); ctx.fillStyle = '#ffc95e'; ctx.shadowColor = 'rgba(255,180,60,0.8)'; ctx.shadowBlur = 16; ctx.fillRect(0, H1 - 3 - H1 * xu, 1080, 6); ctx.restore(); }
+  // notepad
+  const kp = popK(t, T_PAD, 0.28);
+  if (kp > 0) {
+    ctx.save(); ctx.translate(PADX, PADY); ctx.rotate(-0.05); ctx.scale(kp, kp);
+    ctx.fillStyle = '#f6efd9'; ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 30; ctx.beginPath(); ctx.roundRect(-190, -150, 380, 300, 14); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.fillStyle = '#e0a03a'; ctx.fillRect(-190, -150, 380, 30);
+    let n = 0; TIN.forEach((ti) => { if (t >= ti + 0.3) n++; });
+    for (let i = 0; i < 7; i++) { ctx.fillStyle = 'rgba(80,110,170,0.25)'; ctx.fillRect(-160, -90 + i * 34, 320, 2); }
+    for (let i = 0; i < Math.min(n, 14); i++) { const row = i % 7, col = Math.floor(i / 7), w = 90 + ((i * 53) % 60);
+      ctx.strokeStyle = '#2a2f45'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); const x0 = -150 + col * 165, y0 = -98 + row * 34;
+      for (let x = 0; x <= w; x += 6) { const yy = y0 + 3 * Math.sin(x * 0.45 + i); if (x === 0) ctx.moveTo(x0 + x, yy); else ctx.lineTo(x0 + x, yy); } ctx.stroke(); }
+    // pen
+    const pen = n < 14 && t < T_SLEEP ? [ -150 + Math.floor(n / 7) * 165 + ((t * 300) % 100), -98 + (n % 7) * 34 ] : [130, 110];
+    ctx.save(); ctx.translate(pen[0], pen[1]); ctx.rotate(0.7); ctx.fillStyle = '#ffc95e'; ctx.fillRect(-6, -90, 12, 90); ctx.fillStyle = '#333'; ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.lineTo(0, 14); ctx.fill(); ctx.restore();
+    ctx.restore();
+  }
+  // thoughts (3 AM local coords → screen), later ones spill into the 3 PM half
+  THOUGHTS.forEach((s, k) => {
+    if (t < TH[k]) return;
+    const [lx, ly] = POS[k]; let x = lx, y = ly + amTop, sc = popK(t, TH[k], 0.22), a = 1;
+    const jit = t < T_X ? 2.5 * Math.sin(t * 31 + k * 2) : 0; x += jit; y += jit * 0.6;
+    if (t >= TIN[k]) { const u = easeInOut(clamp((t - TIN[k]) / 0.32)); x = lerp(x, PADX, u); y = lerp(y, PADY, u); sc *= lerp(1, 0.15, u); a = 1 - smooth(0.7, 1, u); if (u >= 1) return; }
+    bubble(s, x, y, sc, a);
+  });
+  // eyes / zzz on the 3 AM figure
+  drawEye(t, amTop);
+  vignette();
+  pop($('m0'), T_X + 0.85, T_SLEEP, t); pop($('m1'), T_SLEEP, 99, t); pop($('m2'), T_M2, 99, t);
+  return true;
+};
+function drawEye(t, amTop) {
+  // head position of the lying figure: computed once
+  if (!drawEye.h) { const P = { ...tallPose(0), shN: 0.05, elN: 0.1, shF: -0.05, elF: 0.12 }; const J = solve(P, 0, 260, 0); drawEye.h = J.head; }
+  const [hx, hy] = drawEye.h;               // in rotated frame: screen = (560 + hy, BY-34 - hx)
+  const x = LX + hy, y = amTop + 560 - 34 - hx;
+  const asleep = smooth(T_SLEEP, T_SLEEP + 0.4, t);
+  ctx.save(); ctx.translate(x, y - 12);
+  if (asleep < 0.5) { const wide = t < T_X ? 1 + 0.15 * Math.sin(t * 20) : 1; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 11 * wide, 0, 7); ctx.fill(); ctx.fillStyle = '#15141a'; ctx.beginPath(); ctx.arc(1, -3, 5, 0, 7); ctx.fill(); }
+  else { ctx.strokeStyle = '#3b2a10'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, -2, 9, 0.2, Math.PI - 0.2); ctx.stroke(); }
+  ctx.restore();
+  if (asleep > 0) for (let i = 0; i < 3; i++) { const u = (((t - T_SLEEP) * 0.5 + i / 3) % 1); ctx.save(); ctx.globalAlpha = asleep * Math.sin(Math.PI * u); label('z', x + 30 + 50 * u, y - 60 - 160 * u, '#b9d0ff', 34 + 24 * u, 0, 700); ctx.restore(); }
+}
+window.__allSteps = { bpm: BPM, th: TH, x: T_X, pad: T_PAD, tin: TIN, sleep: T_SLEEP, m2: T_M2 };
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>

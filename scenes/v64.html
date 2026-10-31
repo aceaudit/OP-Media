@@ -1,0 +1,176 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  #wrap { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="1080" height="1920"></canvas>
+  <div class="hook" id="h1" style="top:170px">Things that are <span class="r">NOT</span><br>a waste of time</div>
+  <div class="hook mid" id="m1" style="top:180px">Save this for the day you<br>feel <span class="g">guilty for slowing down</span>.</div>
+</div>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script>
+initCanvas('c');
+const DUR = 15, BPM = 128, BEAT = 60 / BPM, BAR = 4 * BEAT;
+const dust = makeDust(40), marks = makeMarks();
+const ITEMS = ['Resting.', 'Saying no.', 'A walk with no destination.', 'Starting over.', 'Being bad at something new.', 'Doing nothing for 10 minutes.'];
+const TI = ITEMS.map((_, k) => k * BAR), T_END = 6 * BAR;
+const K = 1.75; setFigureScale(K);
+const FX = 540, FY = 1390;
+function armIK(S, T) {
+  const dx = T[0] - S[0], dy = T[1] - S[1], l1 = L.upper, l2 = L.fore;
+  const d = Math.min(Math.hypot(dx, dy), (l1 + l2) * 0.999), a = Math.atan2(dx, dy);
+  const c1 = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1)), th = Math.acos(clamp((l1 * l1 + l2 * l2 - d * d) / (2 * l1 * l2), -1, 1));
+  return [a - c1, Math.PI - th];
+}
+const fig = (J, blur = 20) => drawFigure(ctx, J, GOLD, GOLD_FAR, GOLD_GLOW, blur);
+function zzz(x, y, t, col = '#ffe2a6') { for (let i = 0; i < 3; i++) { const u = ((t * 0.6 + i / 3) % 1); ctx.save(); ctx.globalAlpha = Math.sin(Math.PI * u); label('z', x + 40 * u, y - 140 * u, col, 32 + 22 * u, 0, 700); ctx.restore(); } }
+// 1. Resting — lying on a mat, slow breathing
+function sResting(u, t) {
+  ctx.save(); ctx.fillStyle = '#26232b'; ctx.beginPath(); ctx.roundRect(250, FY - 22, 640, 24, 12); ctx.fill(); ctx.fillStyle = '#d9d4c8'; ctx.beginPath(); ctx.roundRect(268, FY - 56, 120, 36, 18); ctx.fill(); ctx.restore();
+  const P = { ...tallPose(0), t: -0.04 + 0.015 * Math.sin(t * 2.2), shN: -0.12, elN: 0.15, shF: -0.2, elF: 0.2 };
+  const J0 = solve(P, 0, 0, 0);
+  ctx.save(); ctx.translate(330 - J0.head[1], FY - 18 - L.head); ctx.rotate(-Math.PI / 2); fig(J0); ctx.restore();
+  zzz(360, FY - 120, t);
+}
+// 2. Saying no — hand up, requests bounce off
+function sNo(u, t, lt) {
+  let P = { ...tallPose(Math.sin(t * 2)), t: -0.05 };
+  let J = solve(P, FX - 120, FY, 0);
+  const up = easeOutBack(clamp((lt - 0.25) / 0.25));
+  const [s1, e1] = armIK(J.sh, [lerp(J.sh[0] + 20, J.sh[0] + 150, up), lerp(J.sh[1] + 120, J.sh[1] - 30, up)]);
+  P = { ...P, shN: s1, elN: e1 }; J = solve(P, FX - 120, FY, 0);
+  fig(J);
+  if (up > 0.5) { ctx.save(); ctx.globalAlpha = clamp((up - 0.5) * 3); ctx.strokeStyle = 'rgba(255,201,94,0.6)'; ctx.lineWidth = 6; ctx.shadowColor = 'rgba(255,180,60,0.9)'; ctx.shadowBlur = 20;
+    ctx.beginPath(); ctx.arc(J.wN[0] + 10, J.wN[1], 70 + 6 * Math.sin(t * 12), -1.2, 1.2); ctx.stroke(); ctx.restore(); }
+  // speech bubble
+  if (lt > 0.35) { const k = popK(lt, 0.35, 0.2); ctx.save(); ctx.translate(J.head[0] - 40, J.head[1] - 130); ctx.scale(k, k); ctx.fillStyle = '#f4f2ee'; ctx.beginPath(); ctx.roundRect(-70, -45, 140, 90, 40); ctx.fill(); ctx.beginPath(); ctx.moveTo(10, 40); ctx.lineTo(40, 70); ctx.lineTo(40, 35); ctx.fill(); label('No.', 0, 16, '#15141a', 46, 0, 700); ctx.restore(); }
+  // incoming requests
+  ['Extra shift?', 'Quick favor?', 'One more call?'].forEach((s, i) => {
+    const t0 = 0.05 + i * 0.32, a = lt - t0; if (a < 0) return;
+    const hitT = 0.5; let x, y, r = 0;
+    if (a < hitT) { x = lerp(1150, J.wN[0] + 110, a / hitT); y = lerp(860 + i * 120, J.wN[1] - 40 + i * 50, a / hitT); }
+    else { const b = a - hitT; x = J.wN[0] + 110 + 900 * b; y = J.wN[1] - 40 + i * 50 - 700 * b + 1200 * b * b; r = b * 8; }
+    ctx.save(); ctx.translate(x, y); ctx.rotate(r - 0.1); ctx.fillStyle = '#2b2a31'; ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2; ctx.font = '700 30px Poppins'; const w = ctx.measureText(s).width + 40;
+    ctx.beginPath(); ctx.roundRect(0, -30, w, 60, 14); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#e9e6e0'; ctx.textAlign = 'left'; ctx.fillText(s, 20, 10); ctx.restore();
+  });
+}
+// 3. A walk with no destination — walking, world scrolls, signpost with "?"
+function sWalk(u, t, lt) {
+  const ph = lt * 7.5, P = walkPose(ph, 0.05);
+  const J = solve(P, FX - 40, FY, 0);
+  groundMarks(marks, FY, lt * 260);
+  const sx = 1150 - lt * 260 * 1.0;
+  ctx.save(); ctx.fillStyle = '#5b5446'; ctx.fillRect(sx - 6, FY - 300, 12, 300);
+  [['THIS WAY', -1, FY - 270], ['THAT WAY', 1, FY - 200], ['?', -1, FY - 130]].forEach(([s, d, y]) => { ctx.fillStyle = '#e9e1cc'; ctx.beginPath(); const w = s === '?' ? 70 : 190; if (d > 0) { ctx.moveTo(sx, y - 26); ctx.lineTo(sx + w, y - 26); ctx.lineTo(sx + w + 24, y); ctx.lineTo(sx + w, y + 26); ctx.lineTo(sx, y + 26); } else { ctx.moveTo(sx, y - 26); ctx.lineTo(sx - w, y - 26); ctx.lineTo(sx - w - 24, y); ctx.lineTo(sx - w, y + 26); ctx.lineTo(sx, y + 26); } ctx.fill(); label(s, sx + d * (w / 2 + 6), y + 9, '#2a2418', 24, 2, 700); });
+  ctx.restore();
+  // little bird / cloud for vibe
+  ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.12)'; const cx = 900 - lt * 60; ctx.beginPath(); ctx.arc(cx, 820, 40, 0, 7); ctx.arc(cx + 45, 810, 52, 0, 7); ctx.arc(cx + 95, 825, 38, 0, 7); ctx.fill(); ctx.restore();
+  fig(J);
+}
+// 4. Starting over — progress bar resets and starts again, figure hits restart
+function sRestart(u, t, lt) {
+  const bx = 220, by = 760, bw = 560;
+  let p = lt < 0.7 ? 0.8 * easeOut(lt / 0.7) : lt < 0.95 ? 0.8 * (1 - easeInOut((lt - 0.7) / 0.25)) : 0.35 * easeOut((lt - 0.95) / 0.9);
+  ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.beginPath(); ctx.roundRect(bx, by, bw, 34, 17); ctx.fill();
+  ctx.fillStyle = lt > 0.7 && lt < 0.95 ? '#ff7a6e' : '#ffc95e'; ctx.shadowColor = 'rgba(255,180,60,0.7)'; ctx.shadowBlur = 16; ctx.beginPath(); ctx.roundRect(bx, by, Math.max(34, bw * p), 34, 17); ctx.fill(); ctx.restore();
+  label(lt > 0.95 ? 'TRY #2' : 'TRY #1', bx, by - 22, 'rgba(240,238,232,0.75)', 26, 5, 700, 'left');
+  // restart icon
+  const spin = lt > 0.7 && lt < 1.0 ? (lt - 0.7) * 20 : 0;
+  ctx.save(); ctx.translate(bx + bw + 70, by + 17); ctx.rotate(-spin); ctx.strokeStyle = '#ffc95e'; ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, 0, 30, 0.6, 2 * Math.PI - 0.2); ctx.stroke();
+  ctx.fillStyle = '#ffc95e'; ctx.beginPath(); ctx.moveTo(30, -18); ctx.lineTo(44, 4); ctx.lineTo(18, 4); ctx.fill(); ctx.restore();
+  // figure: slump when it resets, then stands tall and goes again
+  const slump = smooth(0.7, 0.85, lt) * (1 - smooth(1.0, 1.2, lt));
+  let P = mix(tallPose(Math.sin(t * 2)), { t: 0.45, h: 0.5, hipN: 0.1, kneeN: 0.15, hipF: -0.05, kneeF: 0.15, shN: -0.05, elN: 0.1, shF: -0.1, elF: 0.15 }, slump);
+  if (lt > 1.1) { const w = (lt - 1.1) * 8; P = walkPose(w, 0.08); }
+  const J = solve(P, FX - 60 + (lt > 1.1 ? (lt - 1.1) * 80 : 0), FY, 0); fig(J);
+}
+// 5. Being bad at something new — juggling (side view: balls loop in front of him), one drops
+function sJuggle(u, t, lt) {
+  const P0 = { ...tallPose(0), t: -0.02 };
+  const J0 = solve(P0, FX - 80, FY, 0);
+  const hx = J0.sh[0] + 85, hy = J0.sh[1] + 95;
+  const shrug = smooth(1.15, 1.35, lt);
+  const balls = [0, 1, 2].map((i) => {
+    const ph = lt * 2.4 + i / 3, k = ph % 1;
+    let x = hx + lerp(-10, 50, k), y = hy - 300 * 4 * k * (1 - k);
+    if (i === 2 && lt > 0.95) { const b = lt - 0.95; x = hx + 40 + 300 * b; y = hy - 200 + 2600 * b * b - 600 * b; if (y >= FY - 18) { const c = b - 0.5; y = FY - 18 - Math.max(0, 120 * Math.abs(Math.sin(Math.max(0, c) * 8)) * Math.exp(-Math.max(0, c) * 5)); } }
+    else if (shrug > 0 && i < 2) { const b = lt - 1.15; x = hx + (i ? 60 : 10) + 120 * b; y = Math.min(FY - 18, hy - 120 + 2400 * b * b); }
+    return [x, y];
+  });
+  const toss = 0.5 + 0.5 * Math.sin(lt * 2.4 * Math.PI * 2);
+  const [s1, e1] = armIK(J0.sh, [lerp(hx + 10, hx + 60, shrug), lerp(hy - 30 * toss, hy - 70, shrug)]), [s2, e2] = armIK(J0.sh, [lerp(hx - 10, hx - 120, shrug), lerp(hy - 30 * (1 - toss), hy - 70, shrug)]);
+  const P = { ...P0, shN: s1, elN: e1, shF: s2, elF: e2, h: -0.15 * shrug }; const J = solve(P, FX - 80, FY, 0);
+  fig(J);
+  balls.forEach(([x, y], i) => { ctx.save(); ctx.fillStyle = ['#ff7a6e', '#8fc8ff', '#f4f2ee'][i]; ctx.shadowColor = 'rgba(255,255,255,0.4)'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(x, y, 20, 0, 7); ctx.fill(); ctx.restore(); });
+  if (shrug > 0) { ctx.save(); ctx.globalAlpha = shrug; label('oops', J.head[0] + 120, J.head[1] - 60, '#ffe2a6', 40, 2, 700); ctx.restore(); }
+}
+// 6. Doing nothing for 10 minutes — on a bench, leaning back, face to the sky, a slow clock
+function benchPose(b) { return { t: -0.2 + 0.02 * b, h: -0.45, hipN: 1.5, kneeN: 1.38, hipF: 1.42, kneeF: 1.32, shN: 0, elN: 0, shF: 0, elF: 0 }; }
+function benchFig(x, b) {
+  let P = benchPose(b); let J = solve(P, x, FY, 0);
+  const [s1, e1] = armIK(J.sh, [J.pel[0] - 70, J.pel[1] + 6]), [s2, e2] = armIK(J.sh, [J.pel[0] - 90, J.pel[1] + 2]);
+  P = { ...P, shN: s1, elN: e1, shF: s2, elF: e2 }; J = solve(P, x, FY, 0);
+  ctx.save(); ctx.fillStyle = '#3a3128'; ctx.fillRect(J.pel[0] - 150, J.pel[1] + 16, 300, 18); ctx.fillRect(J.pel[0] - 130, J.pel[1] + 34, 14, FY - J.pel[1] - 34); ctx.fillRect(J.pel[0] + 116, J.pel[1] + 34, 14, FY - J.pel[1] - 34); ctx.restore();
+  return J;
+}
+function sNothing(u, t, lt) {
+  const b = Math.sin(t * 1.6);
+  const J0 = solve(benchPose(b), FX - 40, FY, 0);
+  ctx.save(); ctx.globalAlpha = 0.35 + 0.15 * b; const g = ctx.createRadialGradient(J0.head[0], J0.head[1] + 60, 10, J0.head[0], J0.head[1] + 60, 260); g.addColorStop(0, 'rgba(255,190,90,0.35)'); g.addColorStop(1, 'rgba(255,190,90,0)'); ctx.fillStyle = g; ctx.fillRect(0, 700, 1080, 800); ctx.restore();
+  const J = benchFig(FX - 40, b); fig(J, 26 + 8 * b);
+  const cx = 820, cy = 860; ctx.save(); ctx.strokeStyle = 'rgba(240,238,232,0.8)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(cx, cy, 70, 0, 7); ctx.stroke();
+  const a = -Math.PI / 2 + lt * 2.2; ctx.strokeStyle = '#ffc95e'; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + 52 * Math.cos(a), cy + 52 * Math.sin(a)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy - 34); ctx.stroke(); ctx.restore();
+  label('10:00', cx, cy + 120, 'rgba(240,238,232,0.8)', 34, 2, 700);
+}
+const SCENES = [sResting, sNo, sWalk, sRestart, sJuggle, sNothing];
+function caption(k, t) {
+  const t0 = TI[k], kk = t0 === 0 ? 1 : popK(t, t0, 0.2);
+  ctx.save(); ctx.translate(540, 470); ctx.scale(kk, kk);
+  ctx.font = '700 56px Poppins'; ctx.textAlign = 'center'; ctx.fillStyle = '#f4f2ee'; ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 20;
+  const words = ITEMS[k].split(' '), lines = []; let cur = ''; for (const w of words) { const tt = cur ? cur + ' ' + w : w; if (ctx.measureText(tt).width > 960 && cur) { lines.push(cur); cur = w; } else cur = tt; } lines.push(cur);
+  lines.forEach((l, i) => ctx.fillText(l, 0, i * 76 - (lines.length - 1) * 38 + 20));
+  ctx.restore();
+  label(`${k + 1} / 6`, 540, 390, 'rgba(255,214,150,0.8)', 26, 6, 700);
+  pill('NOT A WASTE', 540, 600, t, t0 + 0.45, { size: 32 });
+}
+function recap(t) {
+  if (t < T_END) return;
+  ITEMS.forEach((s, i) => { const a = clamp((t - T_END - 0.08 * i) / 0.2), y = 520 + i * 92; if (a <= 0) return;
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(540, y); const k = lerp(0.85, 1, easeOutBack(a)); ctx.scale(k, k);
+    ctx.fillStyle = 'rgba(22,21,26,0.92)'; ctx.strokeStyle = 'rgba(255,201,94,0.35)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(-420, -36, 840, 72, 36); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(-375, 0, 22, 0, 7); ctx.fillStyle = '#ffc95e'; ctx.fill(); ctx.strokeStyle = '#1a1408'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-384, 1); ctx.lineTo(-377, 8); ctx.lineTo(-365, -7); ctx.stroke();
+    ctx.font = '700 36px Poppins'; ctx.textAlign = 'left'; ctx.fillStyle = '#f4f2ee'; ctx.fillText(s, -335, 13); ctx.restore(); });
+  // the figure, finally resting easy, small at the bottom
+  const kk = popK(t, T_END + 0.5, 0.3); if (kk > 0) { ctx.save(); ctx.translate(540, FY); ctx.scale(0.6 * kk, 0.6 * kk); ctx.translate(-540, -FY); fig(benchFig(560, Math.sin(t * 1.6)), 28); ctx.restore(); }
+}
+window.renderFrame = (t) => {
+  background(t, dust);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (t < T_END) {
+    let k = 0; for (let i = 0; i < 6; i++) if (t >= TI[i]) k = i;
+    const lt = t - TI[k], sc = TI[k] === 0 ? 1 : punch(t, TI[k], 0.04, 0.15);
+    ctx.save(); ctx.translate(540, 1100); ctx.scale(sc, sc); ctx.translate(-540, -1100);
+    floorLine(FY + 2, 0.24); SCENES[k](lt / BAR, t, lt); ctx.restore();
+    caption(k, t);
+  } else recap(t);
+  vignette();
+  pop($('h1'), 0, T_END, t); pop($('m1'), T_END, 99, t);
+  return true;
+};
+window.__allSteps = { bpm: BPM, items: TI, end: T_END, bar: BAR };
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>

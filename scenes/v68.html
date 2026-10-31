@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  #wrap { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="1080" height="1920"></canvas>
+  <div class="hook" id="h1" style="top:160px">Make it <span class="g">unreasonable</span><br>for you to fail.</div>
+  <div class="hook" id="h2" style="top:160px">3 tries. 0 in.<br><span class="r">This is where we stop.</span></div>
+  <div class="hook" id="h3" style="top:190px">Or… <span class="g">keep going.</span></div>
+  <div class="hook" id="m1" style="top:160px">Do so much that failing<br>gets <span class="g">unreasonable</span>.</div>
+  <div class="hook mid" id="m2" style="top:1440px"><span class="tag">Not harder. More often.</span></div>
+</div>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script>
+initCanvas('c');
+const DUR = 16, BPM = 120, BEAT = 0.5;
+const dust = makeDust(40);
+const K = 1.6; setFigureScale(K);
+const FY = 1300, FX = 230, R = 17;
+const BX = 800, BTOP = 1110, BW_T = 170, BW_B = 128;           // wire basket
+const REL = [FX + 92, 960];                                     // release point (hand at release)
+const T_FAST = 4.0, T_LAST = 10.0, T_M1 = 10.6, T_M2 = 12.2;
+// ---- the 100 throws ----
+seed = 68;
+const THROWS = [];
+[[0.4, 'short'], [1.2, 'rimL'], [2.0, 'long']].forEach(([tr, kind]) => THROWS.push({ tr, kind, T: 0.7 }));
+const NF = 97; let hitsLeft = 22;
+for (let k = 0; k < NF; k++) {
+  const last = k === NF - 1;
+  const T = last ? 0.55 : lerp(0.62, 0.5, k / NF);
+  const tr = last ? T_LAST - T : T_FAST + (T_LAST - 0.55 - 0.05 - T_FAST) * Math.pow(k / (NF - 1), 0.78);
+  let kind;
+  if (last) kind = 'in';
+  else if (k === 2) kind = 'in';
+  else { const r = rand(); kind = r < 0.215 ? 'in' : r < 0.55 ? 'short' : r < 0.67 ? 'long' : r < 0.85 ? 'rimL' : 'rimR'; }
+  THROWS.push({ tr, kind, T });
+}
+// force exactly 23 makes (22 + the last one)
+{ let ins = THROWS.filter((h) => h.kind === 'in').length; let i = 5; while (ins < 23 && i < 99) { if (THROWS[i].kind !== 'in' && i % 4 === 1) { THROWS[i].kind = 'in'; ins++; } i++; } i = 98; while (ins > 23 && i > 5) { if (THROWS[i].kind === 'in') { THROWS[i].kind = 'short'; ins--; } i--; } }
+// landing points and resting slots
+let nL = 0, nR = 0, nIn = 0;
+function mound(n, counts, cx) { let r = 0; while (r < counts.length && n >= counts[r]) { n -= counts[r]; r++; } const cnt = r < counts.length ? counts[r] : 1; if (r >= counts.length) { r = counts.length + n; n = 0; }
+  const jit = ((r * 13 + n * 7) % 5 - 2) * 2; return [cx - (cnt - 1) * 16 + n * 32 + jit, FY - R - r * 27]; }
+const leftSlot = (n) => mound(n, [12, 11, 10, 9, 8, 7, 5, 3, 1], 555);
+const rightSlot = (n) => mound(n, [4, 3, 3, 3, 2, 2, 1, 1], 965);
+const binSlot = (n) => { const row = Math.floor(n / 4), col = n % 4, w = lerp(BW_B, BW_T, row / 7) - 2 * R - 6; return [BX - w / 2 + col * (w / 3) + (row % 2) * 6, FY - 6 - R - row * 26]; };
+THROWS.forEach((h, i) => {
+  h.i = i; h.spin = (rand() - 0.5) * 18;
+  if (h.kind === 'in') { h.land = [BX + (rand() - 0.5) * 50, BTOP - 4]; h.rest = binSlot(nIn); h.n = ++nIn; }
+  else if (h.kind === 'short') { h.land = [lerp(420, 660, rand()), FY - R]; h.rest = leftSlot(nL++); }
+  else if (h.kind === 'rimL') { h.land = [BX - BW_T / 2 - 4, BTOP - 6]; h.rest = leftSlot(nL++); }
+  else if (h.kind === 'rimR') { h.land = [BX + BW_T / 2 + 4, BTOP - 6]; h.rest = rightSlot(nR++); }
+  else { h.land = [lerp(990, 1040, rand()), FY - R - lerp(40, 120, rand())]; h.rest = rightSlot(nR++); }
+  h.tl = h.tr + h.T;
+});
+function ballPos(h, t) {
+  const a = t - h.tr; if (a < 0) return null;
+  if (a < h.T) { const u = a / h.T, H = h.kind === 'long' ? 380 : 330; return [lerp(REL[0], h.land[0], u), lerp(REL[1], h.land[1], u) - H * 4 * u * (1 - u), h.spin * a, 0]; }
+  const b = a - h.T;
+  if (h.kind === 'in') { const u = clamp(b / 0.22); return [lerp(h.land[0], h.rest[0], u), lerp(h.land[1], h.rest[1], u * u), h.spin * h.T, u >= 1 ? 2 : 1]; }
+  // misses: bounce/roll to the pile
+  const d = 0.38, u = clamp(b / d), hop = (h.kind === 'short' ? 60 : 110) * 4 * u * (1 - u);
+  return [lerp(h.land[0], h.rest[0], easeOut(u)), lerp(h.land[1], h.rest[1], u) - hop, h.spin * (h.T + b * 0.6), u >= 1 ? 2 : 1];
+}
+function ball(x, y, a, alpha = 1) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(x, y); ctx.rotate(a);
+  const g = ctx.createRadialGradient(-5, -6, 2, 0, 0, R); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#bdb8ae');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(R, 0); for (let i = 1; i <= 9; i++) { const th = i / 9 * Math.PI * 2, rr = R * (0.86 + 0.14 * ((i * 7) % 3) / 2); ctx.lineTo(rr * Math.cos(th), rr * Math.sin(th)); } ctx.fill();
+  ctx.strokeStyle = 'rgba(90,85,78,0.6)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-9, -4); ctx.lineTo(2, 1); ctx.lineTo(8, -6); ctx.moveTo(-4, 8); ctx.lineTo(3, 3); ctx.stroke();
+  ctx.restore();
+}
+function basket(t, front) {
+  const xl = BX - BW_T / 2, xr = BX + BW_T / 2, bl = BX - BW_B / 2, br = BX + BW_B / 2;
+  let glow = 0; for (const h of THROWS) if (h.kind === 'in' && t >= h.tl && t < h.tl + 0.35) glow = Math.max(glow, 1 - (t - h.tl) / 0.35);
+  const full = smooth(T_LAST, T_LAST + 0.4, t);
+  ctx.save();
+  if (!front) { ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.beginPath(); ctx.moveTo(xl, BTOP); ctx.lineTo(xr, BTOP); ctx.lineTo(br, FY); ctx.lineTo(bl, FY); ctx.closePath(); ctx.fill(); ctx.restore(); return; }
+  ctx.strokeStyle = `rgba(205,214,232,${0.55 + 0.3 * glow})`; ctx.lineWidth = 3;
+  for (let i = 0; i <= 8; i++) { const u = i / 8; ctx.beginPath(); ctx.moveTo(lerp(xl, xr, u), BTOP); ctx.lineTo(lerp(bl, br, u), FY); ctx.stroke(); }
+  for (let j = 1; j < 5; j++) { const v = j / 5, y = lerp(BTOP, FY, v); ctx.beginPath(); ctx.moveTo(lerp(xl, bl, v), y); ctx.lineTo(lerp(xr, br, v), y); ctx.stroke(); }
+  ctx.strokeStyle = glow > 0 || full > 0 ? '#ffc95e' : '#dfe5f2'; ctx.lineWidth = 9; ctx.lineCap = 'round';
+  ctx.shadowColor = `rgba(255,180,60,${Math.max(glow, full)})`; ctx.shadowBlur = 30 * Math.max(glow, full);
+  ctx.beginPath(); ctx.moveTo(xl - 6, BTOP); ctx.lineTo(xr + 6, BTOP); ctx.stroke();
+  ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(bl, FY); ctx.lineTo(br, FY); ctx.stroke();
+  ctx.restore();
+}
+function armIK(S, T) {
+  const dx = T[0] - S[0], dy = T[1] - S[1], l1 = L.upper, l2 = L.fore;
+  const d = Math.min(Math.hypot(dx, dy), (l1 + l2) * 0.999), a = Math.atan2(dx, dy);
+  const c1 = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1)), th = Math.acos(clamp((l1 * l1 + l2 * l2 - d * d) / (2 * l1 * l2), -1, 1));
+  return [a - c1, Math.PI - th];
+}
+// throwing arm angle (absolute from straight down, + = forward; overarm = back → over the top → forward)
+function armAngle(t) {
+  let next = null, prev = null; for (const h of THROWS) { if (h.tr >= t) { next = h; break; } prev = h; }
+  const REST = 0.35, BACK = -2.5, FWD = 1.75 - 2 * Math.PI;
+  const gap = next && prev ? next.tr - prev.tr : 0.8, W = Math.min(0.32, gap * 0.8);
+  if (next && t >= next.tr - W) { const u = (t - (next.tr - W)) / W; return u < 0.55 ? lerp(REST, BACK, easeOut(u / 0.55)) : lerp(BACK, FWD, easeInOut((u - 0.55) / 0.45)); }
+  if (prev && t - prev.tr < 0.25) { const u = (t - prev.tr) / 0.25; return lerp(FWD + 2 * Math.PI, REST, easeInOut(u)); }
+  return REST;
+}
+window.renderFrame = (t) => {
+  background(t, dust);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const tries = THROWS.filter((h) => t >= h.tr).length, made = THROWS.filter((h) => h.kind === 'in' && t >= h.tl).length;
+  const fast = t >= T_FAST, slump = smooth(2.75, 3.1, t) * (1 - smooth(T_FAST - 0.2, T_FAST, t)), win = smooth(T_LAST, T_LAST + 0.3, t);
+  const [sx, sy] = shakeXY(t, T_LAST, 14, 0.25);
+  ctx.save(); ctx.translate(sx, sy);
+  floorLine(FY + 2, 0.24);
+  basket(t, false);
+  // balls resting inside the basket are drawn behind its front wires
+  const inFlight = [];
+  THROWS.forEach((h) => { const p = ballPos(h, t); if (!p) return; if (h.kind === 'in' && p[3] >= 1) ball(p[0], p[1], p[2]); else inFlight.push(p); });
+  basket(t, true);
+  inFlight.forEach((p) => ball(p[0], p[1], p[2]));
+  // the thrower
+  const b = Math.sin(t * 2.4);
+  let P = mix({ ...standPose(b), t: fast ? 0.12 : 0.04, hipN: 0.3, kneeN: 0.25, hipF: -0.3, kneeF: 0.1 }, { t: 0.4, h: 0.6, hipN: 0.06, kneeN: 0.12, hipF: -0.06, kneeF: 0.12, shN: -0.05, elN: 0.05, shF: -0.08, elF: 0.08 }, slump);
+  if (win > 0) P = mix(P, cheerPose(Math.sin(t * 8)), win);
+  let J = solve(P, FX, FY, 0);
+  if (win <= 0) {
+    const a = slump > 0.5 ? -0.05 : armAngle(t);
+    P = { ...P, shN: a, elN: fast ? 0.1 : 0.25, shF: slump > 0.5 ? -0.08 : 0.9, elF: 0.6 };
+    J = solve(P, FX, FY, 0);
+    // speed ghosts on the throwing arm during rapid fire
+    if (t > 5.0 && t < T_LAST - 0.05) { for (let g = 1; g <= 3; g++) { const ag = armAngle(t - g * 0.012); const Jg = solve({ ...P, shN: ag }, FX, FY, 0); ctx.save(); ctx.globalAlpha = 0.18 / g; ctx.strokeStyle = GOLD; ctx.lineWidth = L.w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(...Jg.sh); ctx.lineTo(...Jg.eN); ctx.lineTo(...Jg.wN); ctx.stroke(); ctx.restore(); } }
+  }
+  drawFigure(ctx, J, GOLD, GOLD_FAR, GOLD_GLOW, 20 + 14 * win);
+  // ball in hand while winding up
+  const nxt = THROWS.find((h) => h.tr >= t); if (nxt && win <= 0 && slump < 0.5 && nxt.tr - t < 0.45) ball(J.wN[0], J.wN[1] - 6, 0);
+  ctx.restore();
+  if (t >= T_LAST) { burst(BX, BTOP - 30, t, T_LAST, 60, ['#ffc95e', '#fff', '#f0ae36'], 1300, 1.4, 68); ringFlash(BX, BTOP - 20, t, T_LAST, '255,201,94', 30, 520, 0.6, 12); }
+  // counters
+  const labels = ['TRIES', 'APPLICATIONS', 'POSTS', 'WORKOUTS', 'PITCHES', 'TRIES'];
+  const li = t < 5.0 ? 0 : t >= 9.3 ? 5 : 1 + Math.floor((t - 5.0) / 1.08) % 4;
+  ctx.save();
+  [[330, tries, labels[li], '#f4f2ee', THROWS[Math.max(0, tries - 1)].tr], [750, made, 'IN', '#ffc95e', (THROWS.filter((h) => h.kind === 'in' && t >= h.tl).slice(-1)[0] || { tl: -9 }).tl]].forEach(([x, n, lab, col, tlast]) => {
+    ctx.fillStyle = 'rgba(20,19,24,0.9)'; ctx.strokeStyle = col === '#ffc95e' ? 'rgba(255,201,94,0.55)' : 'rgba(255,255,255,0.18)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.roundRect(x - 190, 440, 380, 190, 30); ctx.fill(); ctx.stroke();
+    label(lab, x, 488, col === '#ffc95e' ? '#ffd98a' : 'rgba(240,238,232,0.75)', 26, 6, 700);
+    const k = punch(t, tlast, 0.14, 0.1); ctx.save(); ctx.translate(x, 595); ctx.scale(k, k); ctx.font = '700 104px Poppins'; ctx.textAlign = 'center'; ctx.fillStyle = col; if (col === '#ffc95e') { ctx.shadowColor = 'rgba(255,180,60,0.7)'; ctx.shadowBlur = 20; } ctx.fillText(String(n), 0, 0); ctx.restore();
+  });
+  ctx.restore();
+  vignette();
+  flash(t, T_LAST, 0.06, 0.18);
+  pop($('h1'), 0, 2.8, t); pop($('h2'), 2.8, T_FAST, t); pop($('h3'), T_FAST, T_LAST, t); pop($('m1'), T_LAST, 99, t); pop($('m2'), T_M2, 99, t);
+  return true;
+};
+window.__allSteps = { bpm: BPM, fast: T_FAST, last: T_LAST, m1: T_M1, m2: T_M2, throws: THROWS.map((h) => [+h.tr.toFixed(3), +h.tl.toFixed(3), h.kind]) };
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  #wrap { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="1080" height="1920"></canvas>
+  <div class="hook" id="h1" style="top:150px">Watch the one<br><span class="g">on top</span>.</div>
+  <div class="hook" id="h2" style="top:150px">He stopped<br><span class="r">here</span>.</div>
+  <div class="hook" id="h3" style="top:150px">The other one<br><span class="g">kept swinging</span>.</div>
+  <div class="hook" id="h4" style="top:150px">He was <span class="g">one swing</span><br>away.</div>
+  <div class="hook" id="m1" style="top:150px">You might be closer<br><span class="g">than you think</span>.</div>
+  <div class="hook mid" id="m2" style="top:1420px"><span class="tag">Don't quit now.</span></div>
+</div>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script>
+initCanvas('c');
+const DUR = 15, BPM = 120, BEAT = 0.5;
+const GROUND = 420, GOLDX = 905;
+const LANES = [{ floor: 920, h: 330, col: [WHITE, WHITE_FAR, WHITE_GLOW], step: 53, quit: 6.0 }, { floor: 1390, h: 330, col: [GOLD, GOLD_FAR, GOLD_GLOW], step: 37.5, quit: 99 }];
+const X0 = 300, T_DIG = 0.3, T_BREAK = 8.5, T_ZOOM = 9.7, T_M1 = 11.6, T_M2 = 13.0;
+const K = 1.0; setFigureScale(K);
+seed = 67; const ROCKS = Array.from({ length: 90 }, () => [rand() * 1080, GROUND + 40 + rand() * 1450, 3 + rand() * 9, rand()]);
+const GLINT = Array.from({ length: 26 }, () => [GOLDX + 30 + rand() * 150, 520 + rand() * 1050, rand() * 6]);
+function armIK(S, T) {
+  const dx = T[0] - S[0], dy = T[1] - S[1], l1 = L.upper, l2 = L.fore;
+  const d = Math.min(Math.hypot(dx, dy), (l1 + l2) * 0.999), a = Math.atan2(dx, dy);
+  const c1 = Math.acos(clamp((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1)), th = Math.acos(clamp((l1 * l1 + l2 * l2 - d * d) / (2 * l1 * l2), -1, 1));
+  return [a - c1, Math.PI - th];
+}
+function mirror(J, x0) { const o = {}; for (const k in J) o[k] = Array.isArray(J[k]) ? [2 * x0 - J[k][0], J[k][1]] : J[k]; return o; }
+// strikes land on beats; tunnel end advances one step per strike
+function strikes(lane, t) { const tq = Math.min(t, lane.quit, lane === LANES[1] ? T_BREAK : 99); if (tq < T_DIG + BEAT) return 0; return Math.floor((tq - T_DIG) / BEAT); }
+function endX(lane, t) { const n = strikes(lane, t), ph = clamp(((Math.min(t, lane.quit) - T_DIG) % BEAT) / BEAT); const base = X0 + n * lane.step;
+  return Math.min(lane === LANES[1] ? GOLDX + 40 : GOLDX - 22, base); }
+function earth(t) {
+  // sky
+  const sk = ctx.createLinearGradient(0, 0, 0, GROUND); sk.addColorStop(0, '#07080d'); sk.addColorStop(1, '#141722'); ctx.fillStyle = sk; ctx.fillRect(0, 0, 1080, GROUND);
+  // soil
+  const sg = ctx.createLinearGradient(0, GROUND, 0, 1920); sg.addColorStop(0, '#4a3524'); sg.addColorStop(1, '#1e150e'); ctx.fillStyle = sg; ctx.fillRect(0, GROUND, 1080, 1920 - GROUND);
+  ROCKS.forEach(([x, y, r, s]) => { ctx.fillStyle = `rgba(${s > 0.5 ? '120,95,70' : '30,22,15'},0.55)`; ctx.beginPath(); ctx.ellipse(x, y, r * 1.4, r, s * 3, 0, 7); ctx.fill(); });
+  ctx.fillStyle = '#4f7a3c'; ctx.fillRect(0, GROUND - 10, 1080, 14);
+  // gold vein (visible to the viewer the whole time)
+  const glow = t >= T_BREAK ? 1 : 0.35;
+  ctx.save(); const gg = ctx.createLinearGradient(GOLDX, 0, 1080, 0); gg.addColorStop(0, '#d18f22'); gg.addColorStop(0.4, '#f0ae36'); gg.addColorStop(1, '#ffd98a');
+  ctx.fillStyle = gg; ctx.shadowColor = `rgba(255,180,60,${0.5 + 0.5 * glow})`; ctx.shadowBlur = 40 + 40 * glow;
+  ctx.beginPath(); ctx.moveTo(1080, 480); ctx.lineTo(GOLDX + 60, 500);
+  const pts = [[GOLDX + 20, 620], [GOLDX, 760], [GOLDX, 900], [GOLDX + 30, 1020], [GOLDX, 1150], [GOLDX, 1340], [GOLDX + 40, 1470], [GOLDX + 90, 1560]];
+  pts.forEach(([x, y]) => ctx.lineTo(x, y)); ctx.lineTo(1080, 1600); ctx.closePath(); ctx.fill(); ctx.restore();
+  GLINT.forEach(([x, y, p]) => { const a = 0.5 + 0.5 * Math.sin(t * 3 + p); ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = '#fff6dc'; ctx.translate(x, y); ctx.rotate(0.78); ctx.fillRect(-2, -9, 4, 18); ctx.fillRect(-9, -2, 18, 4); ctx.restore(); });
+  label('GOLD', 1000, 1050, '#5a3a08', 34, 8, 700);
+}
+function tunnel(lane, t) {
+  const ex = endX(lane, t), top = lane.floor - lane.h;
+  ctx.save(); ctx.fillStyle = '#120d09'; ctx.beginPath(); ctx.moveTo(0, top + 10); ctx.lineTo(ex - 30, top); ctx.quadraticCurveTo(ex + 10, top + 10, ex + 6, lane.floor - lane.h / 2); ctx.quadraticCurveTo(ex + 10, lane.floor, ex - 30, lane.floor); ctx.lineTo(0, lane.floor); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#2a1e14'; ctx.fillRect(0, lane.floor, Math.max(0, ex - 20), 6);
+  // breakthrough light for the lower lane
+  if (lane === LANES[1] && t >= T_BREAK) { const a = smooth(T_BREAK, T_BREAK + 0.4, t); const lg = ctx.createRadialGradient(GOLDX, lane.floor - 150, 20, GOLDX, lane.floor - 150, 750); lg.addColorStop(0, `rgba(255,210,120,${0.75 * a})`); lg.addColorStop(1, 'rgba(255,180,60,0)'); ctx.fillStyle = lg; ctx.fillRect(0, top - 300, 1080, lane.h + 600); }
+  // shaft up to the surface on the left
+  ctx.fillStyle = '#120d09'; ctx.fillRect(60, GROUND, 110, lane.floor - GROUND); ctx.restore();
+}
+function digger(lane, t, k) {
+  const [col, far, glow] = lane.col, ex = endX(lane, t), quitT = lane.quit, broke = lane === LANES[1] && t >= T_BREAK;
+  const fx = ex - 80;
+  if (t < quitT && !broke) {
+    // swing: raise over 0.33 beat-fraction, strike fast
+    const ph = Math.max(0, (t - T_DIG) % BEAT) / BEAT, ang = ph < 0.7 ? lerp(-0.2, -2.3, easeOut(ph / 0.7)) : lerp(-2.3, 0.35, easeInOut((ph - 0.7) / 0.3));
+    let P = { ...standPose(0), t: 0.12 + 0.12 * Math.sin(ang), h: 0.05, hipN: 0.35, kneeN: 0.35, hipF: -0.25, kneeF: 0.15 };
+    let J = solve(P, fx, lane.floor, 0);
+    const r = 80, grip = [J.sh[0] + r * Math.cos(ang), J.sh[1] + r * Math.sin(ang) + 30];
+    const [s1, e1] = armIK(J.sh, grip), [s2, e2] = armIK(J.sh, [grip[0] - 12, grip[1] + 6]);
+    P = { ...P, shN: s1, elN: e1, shF: s2, elF: e2 }; J = solve(P, fx, lane.floor, 0);
+    drawFigure(ctx, J, col, far, glow, 16, (g) => pickaxe(g, grip, ang));
+    // debris on strike
+    const sinceStrike = ((t - T_DIG) % BEAT) - 0.7 * BEAT * 0 ; const n = Math.floor((t - T_DIG) / BEAT);
+    if (t > T_DIG + BEAT) burst(ex, lane.floor - 70, t, T_DIG + (n) * BEAT, 10, ['#6b4c33', '#8a6a4a', '#3a2a1c'], 380, 0.45, k * 100 + n);
+  } else if (broke) {
+    const u = t - T_BREAK, J = solve({ ...cheerPose(Math.sin(t * 9)), t: -0.05 }, fx + 20, lane.floor - 18 * Math.abs(Math.sin(u * 7)) * Math.exp(-u * 1.5), 0);
+    drawFigure(ctx, J, col, far, glow, 30);
+  } else {
+    // quit: drop the pick, slump, turn and walk back
+    const u = t - quitT, walk = u > 0.9;
+    const dropX = ex - 20, dropY = lane.floor - 8;
+    ctx.save(); ctx.strokeStyle = '#8a6a4a'; ctx.lineWidth = 6; ctx.lineCap = 'round'; const fy = Math.min(dropY, lane.floor - 120 + 900 * u * u);
+    ctx.beginPath(); ctx.moveTo(dropX - 60, fy + 4); ctx.lineTo(dropX + 30, fy - 6); ctx.stroke(); ctx.strokeStyle = '#b8bcc4'; ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(dropX + 18, fy - 34); ctx.quadraticCurveTo(dropX + 36, fy - 8, dropX + 26, fy + 20); ctx.stroke(); ctx.restore();
+    if (!walk) { const s = smooth(0, 0.4, u); const J = solve(mix(standPose(0), { t: 0.35, h: 0.55, hipN: 0.05, kneeN: 0.12, hipF: -0.05, kneeF: 0.12, shN: -0.05, elN: 0.05, shF: -0.08, elF: 0.08 }, s), fx, lane.floor, 0); drawFigure(ctx, J, col, far, glow, 16); }
+    else { const w = u - 0.9, x = fx - 230 * w; let J = solve(walkPose(w * 7, 0.12, 0.3), x, lane.floor, 0); J = mirror(J, x); ctx.save(); ctx.globalAlpha = 1 - smooth(2.6, 3.2, w); drawFigure(ctx, J, col, far, glow, 16); ctx.restore(); }
+  }
+}
+function pickaxe(g, grip, ang) {
+  const dx = Math.cos(ang + 0.15), dy = Math.sin(ang + 0.15), hx = grip[0] + dx * 80, hy = grip[1] + dy * 80;
+  g.save(); g.shadowBlur = 0; g.strokeStyle = '#8a6a4a'; g.lineWidth = 6; g.lineCap = 'round'; g.beginPath(); g.moveTo(grip[0] - dx * 20, grip[1] - dy * 20); g.lineTo(hx, hy); g.stroke();
+  g.strokeStyle = '#b8bcc4'; g.lineWidth = 8; g.beginPath(); g.moveTo(hx - dy * 34, hy + dx * 34); g.quadraticCurveTo(hx + dx * 14, hy + dy * 14, hx + dy * 34, hy - dx * 34); g.stroke(); g.restore();
+}
+window.renderFrame = (t) => {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const e = easeInOut(clamp((t - T_ZOOM) / 0.6)) * (1 - easeInOut(clamp((t - T_M1 + 0.2) / 0.6))), z = 1 + 1.1 * e;
+  const zx = GOLDX - 15, zy = LANES[0].floor - 150;
+  const [sx, sy] = shakeXY(t, T_BREAK, 16, 0.3);
+  ctx.save(); ctx.translate(lerp(zx, 560, e) + sx, lerp(zy, 820, e) + sy); ctx.scale(z, z); ctx.translate(-zx, -zy);
+  earth(t);
+  LANES.forEach((ln) => tunnel(ln, t));
+  LANES.forEach((ln, k) => digger(ln, t, k));
+  if (t >= T_BREAK) { burst(GOLDX, LANES[1].floor - 150, t, T_BREAK, 70, ['#ffc95e', '#fff', '#f0ae36'], 1400, 1.5, 67); ringFlash(GOLDX, LANES[1].floor - 150, t, T_BREAK, '255,201,94', 40, 700, 0.7, 14); }
+  // the gap marker on the top lane
+  if (t >= T_ZOOM + 0.3) { const a = clamp((t - T_ZOOM - 0.3) / 0.2) * (1 - smooth(T_M1 - 0.2, T_M1 + 0.2, t)); const ex = endX(LANES[0], t);
+    ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = '#ff7a6e'; ctx.lineWidth = 3; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(ex + 6, zy); ctx.lineTo(GOLDX, zy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#ff7a6e'; ctx.beginPath(); ctx.arc(ex + 6, zy, 4, 0, 7); ctx.arc(GOLDX, zy, 4, 0, 7); ctx.fill(); ctx.restore(); }
+  ctx.restore();
+  if (t >= T_ZOOM + 0.3 && t < T_M1) pill('1 swing away', 560, 1110, t, T_ZOOM + 0.3, { bg: '#ff7a6e', size: 40 });
+  // top caption backing
+  const tg = ctx.createLinearGradient(0, 0, 0, 400); tg.addColorStop(0, 'rgba(0,0,0,0.5)'); tg.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = tg; ctx.fillRect(0, 0, 1080, 400);
+  vignette();
+  flash(t, T_BREAK, 0.25, 0.25);
+  pop($('h1'), 0, LANES[0].quit, t); pop($('h2'), LANES[0].quit + 0.2, T_BREAK, t); pop($('h3'), T_BREAK, T_ZOOM, t); pop($('h4'), T_ZOOM, T_M1, t);
+  pop($('m1'), T_M1, 99, t); pop($('m2'), T_M2, 99, t);
+  return true;
+};
+window.__allSteps = { bpm: BPM, dig: T_DIG, beat: BEAT, quit: LANES[0].quit, brk: T_BREAK, zoom: T_ZOOM, m1: T_M1, m2: T_M2 };
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  #wrap { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="1080" height="1920"></canvas>
+  <div class="hook" id="h1" style="top:170px">Pick one<br><span class="g">before they drop.</span></div>
+  <div class="hook" id="h2" style="top:260px; font-size:86px"><span class="g">GOLD</span> WINS!</div>
+  <div class="hook" id="m1" style="top:250px">Gold was <span class="g">3rd</span> for<br>most of the race.</div>
+  <div class="hook mid" id="m2" style="top:1400px"><span class="tag">Being behind isn't losing.</span></div>
+</div>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script src="marble_sim.js"></script>
+<script>
+initCanvas('c');
+const DUR = 15, BPM = 128, BEAT = 60 / BPM, T_GO = 3 * BEAT;
+const R = MarbleSim.R; const dust = makeDust(40);
+const SIM = MarbleSim.simulate({ xs: [402, 479, 568, 651], jit: 0, dur: 15, go: T_GO });
+const CRS = SIM.course, F = SIM.frames, NF = F.length;
+const NAMES = ['GOLD', 'WHITE', 'BLUE', 'RED'];
+const COL = [['#ffe9b0', '#f0ae36', '#7d520f', 'rgba(255,180,60,0.7)'], ['#ffffff', '#e6e3dd', '#86837d', 'rgba(255,255,255,0.45)'],
+             ['#b9dcff', '#3d8bff', '#103a80', 'rgba(70,150,255,0.6)'], ['#ffc0b8', '#ff4a3d', '#7d1710', 'rgba(255,80,60,0.6)']];
+// slow motion around the photo finish: sim time s(t)
+const SW0 = 8.25, SW1 = 8.85, RATE = 0.3, SWV = (SW1 - SW0) / RATE;
+const simT = (t) => (t < SW0 ? t : t < SW0 + SWV ? SW0 + (t - SW0) * RATE : SW1 + (t - SW0 - SWV));
+const vidT = (s) => (s < SW0 ? s : s < SW1 ? SW0 + (s - SW0) / RATE : SW0 + SWV + (s - SW1));
+const FIN = SIM.fin.map(vidT), WIN = SIM.fin.indexOf(Math.min(...SIM.fin)), T_WIN = FIN[WIN];
+const T_M1 = T_WIN + 1.25, T_M2 = T_M1 + 1.8;
+// ranks with hysteresis + camera, per sim frame
+const RANK = [], CAM = [];
+{ let order = [0, 1, 2, 3], cy = -260;
+  for (let i = 0; i < NF; i++) {
+    const s = i / 60, f = F[i];
+    const done = [0, 1, 2, 3].filter((k) => SIM.fin[k] !== null && SIM.fin[k] <= s).sort((a, b) => SIM.fin[a] - SIM.fin[b]);
+    let rest = order.filter((k) => !done.includes(k));
+    for (let j = 0; j < rest.length - 1; j++) { const a = rest[j], b = rest[j + 1]; if (f[b][1] > f[a][1] + 20) { rest[j] = b; rest[j + 1] = a; } }
+    order = done.concat(rest); RANK.push(order.slice());
+    const ly = Math.max(...f.map((p) => p[1]));
+    const target = s < T_GO + 0.15 ? -260 : clamp(ly - 1050, -260, 2150);
+    cy += (target - cy) * (1 - Math.exp(-(1 / 60) / 0.2)); CAM.push(cy);
+  }
+}
+// smoothed slot position per marble for the rank strip
+const SLOT = []; { let pos = [0, 1, 2, 3]; for (let i = 0; i < NF; i++) { const r = RANK[i]; pos = pos.map((p, k) => p + (r.indexOf(k) - p) * (1 - Math.exp(-(1 / 60) / 0.09))); SLOT.push(pos.slice()); } }
+const PEGHIT = CRS.pegs.map(() => []); SIM.events.filter((e) => e[1] === 1).forEach((e) => { const k = CRS.pegs.findIndex((p) => p[0] === e[3] && p[1] === e[4]); if (k >= 0) PEGHIT[k].push(e[0]); });
+function at(arr, s) { const x = clamp(s * 60, 0, NF - 1), i = Math.floor(x), j = Math.min(NF - 1, i + 1), u = x - i; return [arr[i], arr[j], u]; }
+function posAt(s, k) { const [a, b, u] = at(F, s); return [lerp(a[k][0], b[k][0], u), lerp(a[k][1], b[k][1], u), lerp(a[k][2], b[k][2], u)]; }
+function camAt(s) { const [a, b, u] = at(CAM, s); return lerp(a, b, u); }
+function marble(x, y, ang, k, sc = 1) {
+  const [lt, c, dk, gl] = COL[k];
+  ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
+  const g = ctx.createRadialGradient(-R * 0.35, -R * 0.4, R * 0.08, 0, 0, R * 1.05); g.addColorStop(0, lt); g.addColorStop(0.45, c); g.addColorStop(1, dk);
+  ctx.fillStyle = g; ctx.shadowColor = gl; ctx.shadowBlur = 22; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.save(); ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.clip(); ctx.rotate(ang); ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(-R, -4, 2 * R, 8); ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(-4, -R, 8, 2 * R); ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.ellipse(-R * 0.36, -R * 0.42, 7, 4.5, -0.6, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+function rail(x0, y0, x1, y1, w = 12) {
+  ctx.save(); ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(190,205,235,0.18)'; ctx.lineWidth = w + 14; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.strokeStyle = '#c9d2e6'; ctx.lineWidth = w; ctx.shadowColor = 'rgba(160,190,255,0.55)'; ctx.shadowBlur = 16; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  ctx.restore();
+}
+function drawCourse(s, t) {
+  // side walls
+  ctx.save(); ctx.strokeStyle = 'rgba(200,210,235,0.22)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(60, -400); ctx.lineTo(60, 2900); ctx.moveTo(1020, -400); ctx.lineTo(1020, 2900); ctx.stroke(); ctx.restore();
+  CRS.segs.slice(2).forEach((q) => { if (q[0] === q[2] && q[3] > 3400) return; rail(q[0], q[1], q[2], q[3], 12); });
+  rail(474, 3150, 474, 3480, 10); rail(606, 3150, 606, 3480, 10);
+  // gate
+  const g = smooth(T_GO, T_GO + 0.18, t);
+  ctx.save(); ctx.globalAlpha = 1 - g * 0.8; ctx.strokeStyle = '#ffc95e'; ctx.lineWidth = 10; ctx.lineCap = 'round'; ctx.shadowColor = 'rgba(255,180,60,0.8)'; ctx.shadowBlur = 18;
+  ctx.beginPath(); ctx.moveTo(330 - 160 * g, 432); ctx.lineTo(540 - 210 * g, 432); ctx.moveTo(540 + 210 * g, 432); ctx.lineTo(750 + 160 * g, 432); ctx.stroke(); ctx.restore();
+  // pegs (flash when hit)
+  CRS.pegs.forEach(([x, y, r], k) => {
+    let h = 0; for (const e of PEGHIT[k]) if (s >= e && s < e + 0.35) h = Math.max(h, 1 - (s - e) / 0.35);
+    ctx.save(); ctx.fillStyle = h > 0 ? `rgb(${Math.round(lerp(210, 255, h))},${Math.round(lerp(216, 205, h))},${Math.round(lerp(232, 110, h))})` : '#d2d8e8';
+    ctx.shadowColor = h > 0 ? 'rgba(255,190,70,0.95)' : 'rgba(160,190,255,0.5)'; ctx.shadowBlur = 12 + 24 * h;
+    ctx.beginPath(); ctx.arc(x, y, r + 3 * h, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  });
+  // finish line (checkered) + label
+  const fy = CRS.finishY; ctx.save();
+  for (let i = 0; i < 11; i++) for (let j = 0; j < 2; j++) { ctx.fillStyle = (i + j) % 2 ? '#111' : '#f4f2ee'; ctx.fillRect(480 + i * 11.3, fy - 11 + j * 11, 11.3, 11); }
+  label('FINISH', 640, fy + 12, '#f4f2ee', 30, 6, 700, 'left'); label('FINISH', 440, fy + 12, '#f4f2ee', 30, 6, 700, 'right');
+  ctx.restore();
+}
+function rankStrip(t, s) {
+  const a = smooth(T_GO, T_GO + 0.2, t); if (a <= 0) return;
+  const [p, q, u] = at(SLOT, s), pos = p.map((v, k) => lerp(v, q[k], u));
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.fillStyle = 'rgba(8,8,12,0.72)'; ctx.strokeStyle = 'rgba(255,255,255,0.16)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(540 - 290, 112, 580, 128, 34); ctx.fill(); ctx.stroke();
+  ['1ST', '2ND', '3RD', '4TH'].forEach((l, i) => label(l, 540 - 210 + i * 140, 222, i === 0 ? '#ffc95e' : 'rgba(240,238,232,0.6)', 20, 4, 700));
+  [3, 2, 1, 0].forEach((k) => marble(540 - 210 + pos[k] * 140, 160, 0, k, 0.95));
+  ctx.restore();
+}
+window.renderFrame = (t) => {
+  background(t, dust);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const s = simT(t), cam = camAt(s);
+  const slow = smooth(SW0 - 0.1, SW0 + 0.25, t) * (1 - smooth(SW0 + SWV - 0.2, SW0 + SWV + 0.1, t));
+  const z = 1 + 0.16 * easeInOut(slow), zy = CRS.finishY - cam;
+  ctx.save(); ctx.translate(540, zy); ctx.scale(z, z); ctx.translate(-540, -zy);
+  ctx.translate(0, -cam);
+  drawCourse(s, t);
+  // trails
+  for (let k = 0; k < 4; k++) for (let j = 6; j >= 1; j--) { const [x, y] = posAt(Math.max(0, s - j / 60), k), [x2, y2] = posAt(s, k); if (Math.hypot(x2 - x, y2 - y) < 6 * j) continue; ctx.save(); ctx.globalAlpha = 0.14 * (1 - j / 7); ctx.fillStyle = COL[k][1]; ctx.beginPath(); ctx.arc(x, y, R * (1 - j * 0.07), 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+  for (const k of [1, 2, 3, 0]) { const [x, y, a] = posAt(s, k); marble(x, y, a, k); }
+  // countdown above the gate
+  const cd = t < BEAT ? '3' : t < 2 * BEAT ? '2' : t < T_GO ? '1' : 'GO!', cdT = t < BEAT ? 0 : t < 2 * BEAT ? BEAT : t < T_GO ? 2 * BEAT : T_GO;
+  if (t < T_GO + 0.45) { const k = cdT === 0 ? 1 : popK(t, cdT, 0.2); ctx.save(); ctx.globalAlpha = t > T_GO ? 1 - smooth(T_GO + 0.2, T_GO + 0.45, t) : 1; ctx.translate(540, 300); ctx.scale(k, k); bigNumber(cd, 0, 0, cd === 'GO!' ? '#ffd98a' : '#f4f2ee', 'rgba(255,180,60,0.8)', 1, 110); ctx.restore(); }
+  // marble names under the gate before the drop
+  if (t < T_GO + 0.3) { ctx.save(); ctx.globalAlpha = 1 - smooth(T_GO, T_GO + 0.3, t); NAMES.forEach((n, k) => label(n, F[0][k][0], 474, COL[k][1], 18, 1, 700)); ctx.restore(); }
+  // finish fx
+  ringFlash(540, CRS.finishY, t, T_WIN, '255,201,94', 30, 520, 0.7, 12);
+  burst(540, CRS.finishY, t, T_WIN, 60, ['#ffc95e', '#fff', '#f0ae36', '#ff4a3d', '#3d8bff'], 1500, 1.6, 59);
+  ctx.restore();
+  // slow-mo dim + label
+  if (slow > 0) { ctx.save(); ctx.globalAlpha = 0.35 * slow; const g = ctx.createRadialGradient(540, 960, 300, 540, 960, 1100); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)'); ctx.fillStyle = g; ctx.fillRect(0, 0, 1080, 1920); ctx.restore();
+    if (t < T_WIN) { ctx.save(); ctx.globalAlpha = slow; pill('PHOTO FINISH', 540, 310, t, SW0, { bg: '#f4f2ee', size: 32 }); ctx.restore(); } }
+  rankStrip(t, s);
+  vignette();
+  flash(t, T_WIN, 0.1, 0.2);
+  pop($('h1'), 0, T_GO, t); pop($('h2'), T_WIN, T_M1, t, 0.25); pop($('m1'), T_M1, 99, t); pop($('m2'), T_M2, 99, t);
+  return true;
+};
+window.__rankStats = () => { let c = [0, 0, 0, 0], n = 0; for (let i = Math.round(T_GO * 60); i < Math.round(SIM.fin[WIN] * 60); i++) { c[RANK[i].indexOf(0)]++; n++; } return c.map((x) => +(x / n).toFixed(2)); };
+window.__allSteps = { bpm: BPM, go: T_GO, beat: BEAT, sw0: SW0, swv: SWV, win: T_WIN, fin: FIN, m1: T_M1, m2: T_M2,
+  hits: SIM.events.map((e) => [+vidT(e[0]).toFixed(4), e[1], Math.round(e[2])]),
+  leadChanges: (() => { const out = []; let prev = -1; for (let i = 0; i < NF; i++) { const s = i / 60; if (s < T_GO + 0.3) continue; const l = RANK[i][0]; if (prev >= 0 && l !== prev) out.push(+vidT(s).toFixed(3)); prev = l; } return out; })() };
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>
