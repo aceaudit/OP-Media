@@ -32,12 +32,12 @@ function burst(x, y, t, t0, n = 26, cols = ['#ffc95e', '#ffffff', '#f0ae36'], sp
 }
 // expanding ring flash
 function ringFlash(x, y, t, t0, col = '255,201,94', r0 = 40, r1 = 420, d = 0.55, w = 10) {
-  if (t < t0 || t > t0 + d) return; const u = (t - t0) / d;
+  if (t < t0 || t > t0 + d) return; const u = (t - t0) / d; if (u >= 0.999) return;
   ctx.save(); ctx.globalAlpha = (1 - u) * 0.9; ctx.strokeStyle = `rgb(${col})`; ctx.lineWidth = w * (1 - u) + 1;
   ctx.shadowColor = `rgba(${col},1)`; ctx.shadowBlur = 30; ctx.beginPath(); ctx.arc(x, y, lerp(r0, r1, easeOut(u)), 0, Math.PI * 2); ctx.stroke(); ctx.restore();
 }
 // white flash over the whole frame
-function flash(t, t0, a = 0.35, d = 0.25) { if (t < t0 || t > t0 + d) return; ctx.save(); ctx.globalAlpha = a * (1 - (t - t0) / d); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 1080, 1920); ctx.restore(); }
+function flash(t, t0, a = 0.35, d = 0.25) { if (t < t0 || t > t0 + d) return; const al = a * (1 - (t - t0) / d); if (!(al > 0.001)) return; ctx.save(); ctx.globalAlpha = al; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 1080, 1920); ctx.restore(); }
 // countdown timer bar with seconds left
 function timerBar(x, y, w, t0, t1, t, col = '#ffc95e') {
   if (t < t0 - 0.01 || t > t1 + 0.25) return;

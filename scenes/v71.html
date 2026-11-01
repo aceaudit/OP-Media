@@ -15,10 +15,8 @@
 <script src="rig2d.js"></script>
 <script src="v2.js"></script>
 <script src="vo.js"></script>
+<script src="cine.js"></script>
 <script>
-// 71. The Hard Years — "The age of 16 … 23 isn't easy…" Ages tick on a staircase, then the road of hard lessons, then the 8 years light up gold.
-initCanvas('c');
-const DUR = 17.6;
 const PH = [
   [[0.08, 'The'], [0.24, 'age'], [0.4, 'of'], [0.56, '16,*'], [1.04, '17,*'], [1.6, '18,*'], [2.0, '19,*']],
   [[2.48, '20,*'], [2.8, '21,*'], [3.28, '22*'], [3.76, 'and'], [3.92, '23*']],
@@ -32,6 +30,12 @@ const PH = [
   [[12.64, 'and'], [12.8, 'you'], [12.96, 'become'], [13.28, 'stronger.!']],
   [[14.48, 'And'], [14.64, 'those'], [14.8, 'are'], [14.96, 'the'], [15.12, 'best*'], [15.36, 'years*'], [15.6, 'of'], [15.76, 'your'], [15.92, 'life'], [16.16, 'too.*']],
 ];
+
+// 71. The Hard Years — "The age of 16 … 23 isn't easy…" Ages tick on a staircase, then the road of hard lessons, then the 8 years light up gold.
+initCanvas('c');
+const DUR = 17.8;
+ATMO = { tint: [255, 170, 110], tintA: 0.06, shafts: 0.07, bokeh: 0.9 }; CAP.y = 430;
+
 CAP.end = 16.75;
 const AGES = [0.56, 1.04, 1.6, 2.0, 2.48, 2.8, 3.28, 3.92];
 const FLOOR = 1400;
@@ -66,7 +70,7 @@ function scene1(t) {
   const a = n > 1 ? [STEPX(i - 1), STEPY(i - 1)] : [STEPX(0), STEPY(0)], b = [STEPX(i), STEPY(i)];
   let x = lerp(a[0], b[0], u), y = lerp(a[1], b[1], u) - 60 * Math.sin(Math.PI * u), P = u < 1 ? jumpPose() : standPose(Math.sin(t * 3));
   if (t >= 4.8) { const v = smooth(4.8, 5.0, t); P = mix(P, stumblePose(), v); y += 26 * v; }
-  fig(solve(P, x, y, 0), 18);
+  hero(solve(P, x, y, 0), { expr: t >= 4.8 ? 'shock' : t >= 4.4 ? 'worried' : n <= 3 ? 'happy' : 'neutral', t, speed: 0.3 });
 }
 // ---------------------------------------------------------------- 2: the road — every line happens to him
 const marks = makeMarks();
@@ -91,7 +95,7 @@ function scene2(t) {
     setFigureScale(1.2); let P = walkPose((t - 5.3) * 6.3 + j, 0.05);
     const x = fx + dir * 420 * easeInOut(go);
     ctx.save(); ctx.globalAlpha *= 1 - go * 0.9;
-    if (dir < 0 && go > 0) mirrorX(x, () => figWhite(solve(P, x, FLOOR, 0), 0.55)); else figWhite(solve(P, x, FLOOR, 0), 0.55);
+    const Jf = solve(P, x, FLOOR, 0), dr = () => hero(Jf, { expr: go > 0 ? 'smug' : 'happy', t, col: WHITEC, blur: 6, seed: j + 2 }); ctx.globalAlpha *= 0.8; if (dir < 0 && go > 0) mirrorX(x, dr); else dr();
     ctx.restore();
   });
   // mistakes: red X's pop around him
@@ -112,10 +116,12 @@ function scene2(t) {
   if (t >= 13.28 && t < 13.5) P = mix({ ...walkPose((t - 5.3) * 5.2, 0.28), h: 0.4 }, cheerPose(0), (t - 13.28) / 0.22);
   const J = solve(P, RX, FLOOR, 0);
   ctx.save();
-  if (lose > 0) { ctx.globalAlpha *= 1 - 0.75 * lose * (0.85 + 0.15 * Math.sin(t * 40)); drawFigure(ctx, J, lerp(1, 0, 0) ? GREY : GREY, GREY_FAR, GREY_GLOW, 6); }
-  else fig(J, 20 + 30 * strong);
+  const ev = t < 6.08 ? 'neutral' : t < 6.8 ? 'sad' : t < 7.6 ? 'shock' : t < 8.3 ? 'shock' : t < 8.9 ? 'cry' : t < 10.1 ? 'shock' : t < 11.7 ? 'angry' : t < 13.28 ? 'tired' : 'joy';
+  const evx = t >= 9.3 && t < 10.1 ? exprMix('shock', 'happy', 0.4) : ev;
+  if (lose > 0) { ctx.globalAlpha *= 1 - 0.7 * lose * (0.85 + 0.15 * Math.sin(t * 40)); hero(J, { expr: 'tired', t, col: GREYC, blur: 6 }); }
+  else hero(J, { expr: t >= 13.28 && t < 13.6 ? 'determined' : evx, t, speed: t < 13.28 ? 0.6 : 0.4, blur: 20 + 30 * strong });
   ctx.restore();
-  if (lose > 0.05 && lose < 1) { ctx.save(); ctx.globalAlpha *= (1 - lose) * 0.7; fig(J, 20); ctx.restore(); }
+  if (lose > 0.05 && lose < 1) { ctx.save(); ctx.globalAlpha *= (1 - lose) * 0.7; hero(J, { expr: 'tired', t }); ctx.restore(); }
   if (lose > 0.3) { ctx.save(); ctx.globalAlpha *= lose * 0.5; ctx.setLineDash([12, 12]); ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(J.head[0], J.head[1], L.head + 18, 0, TAU); ctx.stroke(); ctx.restore(); }
   // realize: lightbulb
   lightbulb(J.head[0] + 10, J.head[1] - 110, popK(t, 9.3, 0.25) * (1 - smooth(10.05, 10.3, t)), t);
@@ -154,10 +160,18 @@ function scene3(t) {
   // him, standing tall in front of it all
   setFigureScale(1.3);
   const P = t >= 16.16 ? cheerPose(Math.sin(t * 7)) : tallPose(Math.sin(t * 2));
-  fig(solve(P, 540, FLOOR, 0), 22 + 20 * smooth(16.1, 16.4, t));
+  hero(solve(P, 540, FLOOR, 0), { expr: t >= 16.16 ? 'joy' : 'proud', t, blur: 22 + 20 * smooth(16.1, 16.4, t) });
   if (t >= 16.16) { burst(540, Y, t, 16.16, 80, ['#ffc95e', '#fff', '#f0ae36'], 1500, 1.4, 16); }
 }
-window.renderFrame = (t) => frame(t, (t) => runScenes(t, SC, [scene1, scene2, scene3]), PH, (t) => { if (t >= 16.75) endText(t, 16.75, [['Hard years', '#fff'], ['build you.', GOLDL]], 76); });
+const AGES2 = [0.56, 1.04, 1.6, 2.0, 2.48, 2.8, 3.28, 3.92];
+CAMK = [[0, 420, 1050, 1.42, 0.02], [0.5, 425, 1050, 1.38, 0], [1.4, 480, 1040, 1.15, 0], [4.3, 540, 1020, 1.0, 0], [4.8, 560, 1000, 1.08, 0.02], [5.3, 470, 1080, 1.2, 0],
+        [11.5, 470, 1080, 1.25, 0], [12.1, 470, 1180, 2.1, 0], [13.2, 470, 1180, 2.2, 0], [13.45, 470, 1080, 1.15, 0], [14.3, 470, 1060, 1.1, 0], [14.4, 540, 1000, 1.0, 0], [17.8, 540, 980, 1.06, 0]];
+SHAKES = AGES2.map((a) => [a, 7, 0.12]).concat([[4.8, 20, 0.25], [7.95, 16, 0.2], [8.32, 12, 0.15], [13.28, 26, 0.28], [16.16, 14, 0.2]]);
+PUNCHES = AGES2.map((a) => [a, 0.03, 0.1]).concat([[4.8, 0.06, 0.12], [13.28, 0.1, 0.15]]);
+function screen(t) { impactLines(t, 4.8, 540, 900, 0.3); impactLines(t, 13.28, 540, 1000, 0.4); flash(t, 13.28, 0.22, 0.15); whipLines(t, 5.3, 0.15, 1); whipLines(t, 14.35, 0.15, 1);
+  if (t >= 11.84 && t < 13.28) { const a = smooth(11.84, 12.2, t) * 0.5; ctx.save(); ctx.fillStyle = `rgba(0,0,0,${a.toFixed(3)})`; ctx.fillRect(0, 0, 1080, 1920); ctx.restore(); } }
+window.renderFrame = (t) => frame3(t, { scenes: (t) => runScenes(t, SC, [scene1, scene2, scene3]), screen, PH, hook: { lines: [[['Nobody warns you', 0]], [['about ', 0], ['16 to 23', 1]]], tIn: 0, tOut: 3.0 },
+  after: (t) => { if (t >= 16.75) endText(t, 16.75, [['Hard years', '#fff'], ['build you.', GOLDL]], 76); } });
 window.__allSteps = { ages: AGES, easy: 4.8, stronger: 13.28, best: 15.12, too: 16.16 };
 window.sceneReady = FONTS_READY();
 </script>

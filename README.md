@@ -17,3 +17,16 @@ Restores the rendering pipeline used for Own Pace videos 58+ (v2 format).
 
 Restore: copy `engine/*`, `scenes/*` and `fonts/` into one working folder (e.g. `rat-race/`), the watermark to
 `/home/claude/ownpace-logo/ownpace-video-watermark.png`, and the helpers to the scratchpad.
+
+## v3 (Nov 1): cinematic voiceover videos (70–81 rebuilt)
+- `engine/cine.js` — the hero with an acting face (17 expressions, blinks, tears) and scarf (`hero(J, {expr, t, col, blur})`,
+  `WHITEC`/`GREYC` side characters), keyframed camera (`CAMK`, `SHAKES`, `PUNCHES`), atmosphere (`ATMO`), whip/impact lines,
+  rewind FX, the text-hook box and `frame3(t, {scenes, screen, PH, capOffset, hook, after})`. Pages load vo.js + cine.js.
+- `engine/score.py` — soundfont score + designed SFX: `Part` (tinysoundfont, GeneralUser GS .sf2 at /home/claude/sf/),
+  `piano_arp`/`pad`/`bassline`/`drums`, `FX` (impact, whoosh, riser, subdrop, tape_stop, record_scratch, glitch, chime…),
+  `master(voice, music, fx, …)` (music ducked under the voice, loudness set in ffmpeg). Install: `pip install --no-deps tinysoundfont`.
+- `sep/` — vocal separation of the creator's reel (sherpa-onnx `OfflineSourceSeparation` + UVR-MDX-NET-Voc_FT.onnx from the
+  sherpa-onnx source-separation-models release); `sepchunks.sh` splits long files into 16 s chunks to avoid running out of memory.
+- `scenes/v3/vNN.body.js` — scene code; build a page with `python3 engine/tools/assemble.py NN captions.js vNN.body.js`.
+- Workflow: body → assemble → `prev.sh` stills → `soundNN.py` (check every word with `asr/transcribe.py`; its 25 s chunk
+  boundary can mis-hear a word that straddles it, so re-check suspect spots on a short excerpt) → `go.sh` → `qc.sh`.

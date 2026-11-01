@@ -1,0 +1,125 @@
+// 80. Me vs Me (v3) — SHOCK OPEN: starting pistol BANG, a race he's losing (4th, he keeps glancing at them); the other lanes
+// vanish on "competition"; his ghost from yesterday; last year on the couch vs now; stats fill on grown / learned / improved;
+// a fighting-game VS screen slams on "versus"; payoff: a slow-motion photo finish where he beats his ghost by a nose.
+initCanvas('c');
+const DUR = 20.0;
+CAP.end = 17.6; CAP.y = 430;
+const SC = [[0, 3.95], [3.95, 7.9], [7.9, 10.1], [10.1, 13.8], [13.8, 15.5], [15.5, 17.15], [17.15, 99]];
+const T_VS = 16.32, T_FIN = 18.35;
+ATMO = { tint: [255, 170, 110], tintA: 0.06, shafts: 0.07, bokeh: 0.8 };
+CAMK = [[0, 330, 1250, 2.2, 0.04], [0.35, 330, 1240, 2.0, 0], [0.9, 540, 1150, 1.0, 0], [1.1, 420, 1180, 1.35, 0], [2.0, 430, 1180, 1.35, 0], [2.7, 540, 1150, 1.0, 0], [3.9, 540, 1150, 1.0, 0],
+        [4.0, 500, 1200, 1.1, 0], [6.9, 520, 1200, 1.15, 0], [7.85, 470, 1150, 1.3, 0], [7.95, 540, 1060, 1.0, 0], [10.05, 540, 1060, 1.0, 0], [10.15, 540, 1000, 1.0, 0],
+        [13.75, 540, 1000, 1.06, 0], [13.85, 540, 1000, 1.0, 0], [15.45, 540, 1000, 1.12, 0], [15.55, 540, 1060, 1.0, 0], [T_VS, 540, 1040, 1.06, 0], [17.1, 540, 1040, 1.12, 0],
+        [17.2, 560, 1250, 1.25, 0], [T_FIN, 640, 1220, 1.6, 0], [20.0, 640, 1220, 1.5, 0]];
+SHAKES = [[0, 26, 0.25], [2.64, 10, 0.15], [T_VS, 26, 0.25], [T_FIN, 22, 0.25]];
+PUNCHES = [[0, 0.08, 0.12], [T_VS, 0.1, 0.15], [T_FIN, 0.1, 0.15]];
+// slow motion for the photo finish
+const SLOW0 = 17.9, SLOW_F = 0.3;
+const fT = (t) => (t < SLOW0 ? t : t < T_FIN ? SLOW0 + (t - SLOW0) * SLOW_F : SLOW0 + (T_FIN - SLOW0) * SLOW_F + (t - T_FIN));
+function track(y0, y1, d, lanes) {
+  ctx.save(); ctx.fillStyle = 'rgba(120,52,40,0.38)'; ctx.fillRect(-400, y0, 1880, y1 - y0);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'; for (let i = 0; i <= lanes; i++) ctx.fillRect(-400, lerp(y0, y1, i / lanes) - 2, 1880, 4);
+  ctx.fillStyle = 'rgba(255,255,255,0.18)'; for (let i = 0; i < 10; i++) { const x = ((i * 160 - d) % 1600 + 1600) % 1600 - 300; for (let l = 0; l < lanes; l++) ctx.fillRect(x, lerp(y0, y1, (l + 0.5) / lanes) + 18, 60, 4); }
+  ctx.restore();
+}
+function tag(s, x, y, bg, fg = INK, size = 26) { ctx.font = `700 ${size}px Poppins`; const w = ctx.measureText(s).width + 30; panel(x - w / 2, y - size * 0.8, w, size * 1.6, size * 0.8, null, bg, 0); txt(s, x, y + 1, size, fg, 700); }
+const GHOSTC = ['rgba(255,226,166,0.95)', 'rgba(201,164,106,0.9)', 'rgba(255,220,150,0.5)'];
+function ghost(J, a, t, e = 'tired') { ctx.save(); ctx.globalAlpha *= a; hero(J, { expr: e, t, col: GHOSTC, blur: 10, seed: 7 }); ctx.restore(); }
+// ---------------------------------------------------------------- 1. the race he's losing
+function s1(t) {
+  const go = smooth(0.0, 0.25, t), d = t * 520 * go, Y0 = 900, Y1 = 1460, lanes = 4, ly = (l) => lerp(Y0, Y1, (l + 1) / lanes) - 6;
+  track(Y0, Y1, d, lanes);
+  // starting gun smoke at frame 0
+  if (t < 0.8) { ctx.save(); ctx.globalAlpha *= 1 - t / 0.8; for (let i = 0; i < 6; i++) glowDot(200 + i * 30 + t * 120, 1080 - i * 14 - t * 80, 60 + t * 120, 0.25, '230,230,230'); ctx.restore(); }
+  setFigureScale(0.95);
+  const gone = smooth(2.64, 3.4, t);
+  [[0, 640], [1, 760], [3, 560]].forEach(([l, x0], i) => { const x = x0 + (t > 1.12 ? (t - 1.12) * (220 + i * 60) : 0) + 20 * Math.sin(t * 2 + i);
+    ctx.save(); ctx.globalAlpha *= 1 - gone; const J = solve(runPose(t * 15 + i * 2, 1, 0.3), x, ly(l), 0); hero(J, { expr: 'smug', t, col: WHITEC, blur: 6, seed: i + 3 }); ctx.restore(); });
+  const glance = t > 0.9 && t < 2.6 ? 0.7 * Math.sin(Math.min(1, (t - 0.9) / 0.3) * Math.PI / 2) * (t < 2.3 ? 1 : 1 - (t - 2.3) / 0.3) : 0;
+  const P = { ...runPose(t * 15, 1, 0.3), h: -0.06 - glance * 0.3 };
+  const J = solve(P, 330, ly(2), 0); hero(J, { expr: t < 2.64 ? (glance > 0.2 ? 'worried' : 'determined') : 'calm', t, speed: 1 });
+  if (t < 2.64) { ctx.save(); ctx.globalAlpha *= (1 - gone) * smooth(0.6, 0.8, t); tag('4th', 330, ly(2) - 290, RED, '#fff', 30); ctx.restore(); }
+  ctx.save(); ctx.globalAlpha *= 1 - gone; panel(700, 640, 330, 150, 20, 'rgba(255,255,255,0.2)');
+  ['1. THEM', '2. THEM', '3. THEM', '4. YOU'].forEach((s, i) => txt(s, 730, 664 + i * 33, 24, i === 3 ? '#ff8a7e' : 'rgba(240,238,232,0.75)', 700, 'left', null, 3)); ctx.restore();
+  if (t >= 2.64) { ctx.save(); ctx.globalAlpha *= smooth(2.9, 3.3, t); tag('YOUR LANE', 330, ly(2) - 290, GOLDL, INK, 28); ctx.restore(); }
+}
+// ---------------------------------------------------------------- 2. the only rival: yesterday's ghost
+function s2(t) {
+  const d = t * 560; track(1180, 1420, d, 1); setFigureScale(1.4);
+  const close = smooth(7.0, 7.9, t), gx = 640 - 140 * close + 10 * Math.sin(t * 1.5), x = 380, k = clamp((t - 4.72) / 0.4);
+  if (k > 0) { const Jg = solve(runPose(t * 13 + 1.2, 1, 0.3), gx, 1400, 0); ghost(Jg, 0.45 * k, t, 'smug'); ctx.save(); ctx.globalAlpha *= k; tag('GHOST', gx, Jg.head[1] - 80, 'rgba(255,226,166,0.85)', INK, 24); ctx.restore();
+    if (t >= 7.04) { const kk = popK(t, 7.04, 0.25); ctx.save(); ctx.translate(gx, Jg.head[1] - 140); ctx.scale(kk, kk); tag('YESTERDAY', 0, 0, GOLDL, INK, 30); ctx.restore(); } }
+  hero(solve(runPose(t * 13, 1, 0.3), x, 1400, 0), { expr: close > 0.3 ? 'determined' : 'calm', t, speed: 1 });
+  if (t >= 4.5) { const k2 = popK(t, 4.5, 0.25); ctx.save(); ctx.translate(540, 1500); ctx.scale(k2, k2); panel(-200, -60, 400, 120, 24, 'rgba(255,255,255,0.22)'); txt('VS GHOST', 0, -24, 22, 'rgba(240,238,232,0.7)', 700, 'center', null, 6);
+    const gap = lerp(0.42, 0.03, close); txt(`+${gap.toFixed(2)}s`, 0, 22, 54, gap > 0.2 ? '#ff8a7e' : GOLDL, 700); ctx.restore(); }
+}
+// ---------------------------------------------------------------- 3. last year I was different
+function s3(t) {
+  ctx.save(); ctx.fillStyle = 'rgba(140,120,90,0.08)'; ctx.fillRect(0, 660, 530, 780); ctx.fillStyle = 'rgba(255,201,94,0.06)'; ctx.fillRect(550, 660, 530, 780); ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(538, 660, 4, 780); ctx.restore();
+  floorLine(1400, 0.2);
+  txt('LAST YEAR', 270, 720, 34, 'rgba(240,238,232,0.6)', 700, 'center', null, 8); txt('NOW', 810, 720, 34, GOLDL, 700, 'center', 'rgba(255,170,50,0.6)', 8);
+  ctx.save(); ctx.fillStyle = '#3a3640'; ctx.beginPath(); ctx.roundRect(110, 1270, 320, 70, 18); ctx.fill(); ctx.beginPath(); ctx.roundRect(110, 1180, 60, 160, 18); ctx.fill(); ctx.fillRect(130, 1340, 14, 60); ctx.fillRect(396, 1340, 14, 60); ctx.restore();
+  setFigureScale(1.2); const Jl = solve(slumpSitPose(Math.sin(t * 2)), 230, 1272, 0); hero(Jl, { expr: 'tired', t, col: GREYC, blur: 4, seed: 4 });
+  ctx.save(); ctx.translate(Jl.wN[0] + 10, Jl.wN[1]); ctx.rotate(-0.5); ctx.fillStyle = '#2c2b31'; ctx.strokeStyle = '#6a6974'; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(-10, -30, 22, 40, 4); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'rgba(120,170,255,0.6)'; ctx.fillRect(-6, -26, 14, 32); ctx.restore();
+  setFigureScale(1.45); const k = smooth(9.6, 9.85, t); hero(solve(tallPose(Math.sin(t * 2)), 810, 1400, 0), { expr: k > 0.5 ? 'proud' : 'calm', t, blur: 20 + 20 * k });
+  if (t >= 9.6) ringFlash(810, 1200, t, 9.6, '255,201,94', 60, 360, 0.5, 8);
+}
+// ---------------------------------------------------------------- 4. grown, learned, improved
+const STATS = [['GROWN', 10.56, 0.32, 0.86], ['LEARNED', 11.68, 0.25, 0.8], ['IMPROVED', 12.88, 0.38, 0.92]];
+function s4(t) {
+  panel(90, 660, 900, 440, 30, 'rgba(255,255,255,0.18)'); txt('ME · LAST YEAR vs ME · NOW', 540, 706, 24, 'rgba(240,238,232,0.6)', 700, 'center', null, 4);
+  STATS.forEach(([lab, ts, a, b], i) => { const y = 785 + i * 110, on = t >= ts, u = easeOut(clamp((t - ts) / 0.5));
+    txt(lab, 130, y, 32, on ? GOLDL : 'rgba(240,238,232,0.5)', 700, 'left', null, 4);
+    bar(420, y - 34, 520, 22, a, 'rgba(160,160,160,0.7)', 'rgba(255,255,255,0.08)', false); bar(420, y + 2, 520, 26, on ? lerp(a, b, u) : a * 0.98, on ? GOLDL : 'rgba(255,201,94,0.25)');
+    if (on) { txt(`+${Math.round((b - a) * 100 * u)}%`, 960, y + 50, 26, '#ffd98a', 700, 'right'); ringFlash(420 + 520 * b, y + 15, t, ts + 0.45, '255,201,94', 10, 80, 0.35, 5); } });
+  setFigureScale(lerp(0.75, 1.0, smooth(10.56, 13.0, t))); const n = STATS.filter(([, ts]) => t >= ts).length;
+  hero(solve(n >= 3 ? cheerPose(Math.sin(t * 6)) : tallPose(Math.sin(t * 2)), 540, 1440, 0), { expr: n >= 3 ? 'joy' : n ? 'proud' : 'calm', t });
+}
+// ---------------------------------------------------------------- 5. what truly matters
+function s5(t) {
+  const k = popK(t, 13.95, 0.3); ctx.save(); ctx.translate(540, 980); ctx.scale(k, k);
+  panel(-420, -150, 840, 300, 40, GOLDL, 'rgba(30,26,18,0.95)', 4);
+  txt('ME', -250, -10, 96, GOLDL, 700, 'center', 'rgba(255,170,50,0.7)'); txt('TODAY', -250, 70, 24, '#ffd98a', 700, 'center', null, 6);
+  txt('>', 0, -6, 120, '#fff', 700, 'center', 'rgba(255,255,255,0.6)');
+  txt('ME', 250, -10, 96, 'rgba(240,238,232,0.45)', 700); txt('YESTERDAY', 250, 70, 24, 'rgba(240,238,232,0.45)', 700, 'center', null, 6);
+  ctx.restore(); if (t >= 14.88) { ringFlash(540, 980, t, 14.88, '255,201,94', 200, 640, 0.55, 10); burst(290, 980, t, 14.88, 40, ['#ffc95e', '#fff'], 900, 1.0, 14); }
+}
+// ---------------------------------------------------------------- 6. ME vs ME
+function s6(t) {
+  const sl = easeOut(clamp((t - 15.55) / 0.35));
+  ctx.save(); ctx.beginPath(); ctx.moveTo(-200, 640); ctx.lineTo(lerp(-600, 600, sl), 640); ctx.lineTo(lerp(-600, 480, sl), 1460); ctx.lineTo(-200, 1460); ctx.closePath(); ctx.fillStyle = 'rgba(70,70,80,0.6)'; ctx.fill(); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.moveTo(1280, 640); ctx.lineTo(lerp(1680, 620, sl), 640); ctx.lineTo(lerp(1680, 500, sl), 1460); ctx.lineTo(1280, 1460); ctx.closePath(); ctx.fillStyle = 'rgba(255,201,94,0.24)'; ctx.fill(); ctx.restore();
+  setFigureScale(1.45);
+  const fight = { ...standPose(0), t: 0.1, h: -0.1, hipN: 0.45, kneeN: 0.4, hipF: -0.35, kneeF: 0.2, shN: 1.3, elN: 1.9, shF: 1.0, elF: 2.1 }, bob = Math.sin(t * 6) * 0.04;
+  ctx.save(); ctx.translate(lerp(-400, 0, sl), 0); mirrorX(270, () => hero(solve({ ...fight, t: fight.t + bob }, 270, 1400, 0), { expr: 'smug', t, col: GREYC, blur: 6, seed: 4 })); ctx.restore();
+  ctx.save(); ctx.translate(lerp(400, 0, sl), 0); hero(solve({ ...fight, t: fight.t - bob }, 810, 1400, 0), { expr: 'determined', t, blur: 26 }); ctx.restore();
+  if (t >= 16.0) { const k = popK(t, 16.0, 0.2); ctx.save(); ctx.translate(270, 760); ctx.scale(k, k); txt('ME', 0, 0, 64, 'rgba(240,238,232,0.85)', 700); txt('YESTERDAY', 0, 52, 22, 'rgba(240,238,232,0.5)', 700, 'center', null, 6); ctx.restore(); }
+  if (t >= 16.8) { const k = popK(t, 16.8, 0.2); ctx.save(); ctx.translate(810, 760); ctx.scale(k, k); txt('ME', 0, 0, 64, GOLDL, 700, 'center', 'rgba(255,170,50,0.7)'); txt('TODAY', 0, 52, 22, '#ffd98a', 700, 'center', null, 6); ctx.restore(); }
+  stamp('VS', 540, 1020, t, T_VS, '#fff', 180, -0.1, false);
+}
+// ---------------------------------------------------------------- 7. photo finish (slow motion)
+function s7(t) {
+  const a = fT(t), d = a * 900; track(1180, 1420, d, 1);
+  const FX0 = 900 - (a - 17.15) * 260;   // finish line slides toward them
+  ctx.save(); for (let i = 0; i < 12; i++) { ctx.fillStyle = i % 2 ? '#fff' : '#111'; ctx.fillRect(FX0, 1180 + i * 20, 14, 20); ctx.fillStyle = i % 2 ? '#111' : '#fff'; ctx.fillRect(FX0 + 14, 1180 + i * 20, 14, 20); } ctx.restore();
+  setFigureScale(1.4);
+  const lean = smooth(SLOW0, T_FIN, t);
+  const xg = 560 + 30 * Math.sin(a * 2), xh = 520 + 70 * smooth(17.2, T_FIN, t);
+  ghost(solve(runPose(a * 13 + 1, 1, 0.3), xg, 1400, 0), 0.45, t, 'shock');
+  const P = mix(runPose(a * 13, 1, 0.3), { ...runPose(a * 13, 1, 0.3), t: 0.75, h: -0.4 }, lean);
+  const J = solve(P, xh, 1400, 0); hero(J, { expr: t >= T_FIN ? 'joy' : 'strain', t, speed: 1, blur: 20 + 30 * smooth(T_FIN, T_FIN + 0.3, t) });
+  if (t >= T_FIN) { pill('NEW PERSONAL BEST', 640, 1070, t, T_FIN + 0.1, { size: 40 }); ringFlash(J.head[0], J.head[1], t, T_FIN, '255,201,94', 40, 600, 0.6, 12); }
+}
+const SCENES = [s1, s2, s3, s4, s5, s6, s7];
+function screen(t) {
+  for (const [a] of SC.slice(1)) whipLines(t, a, 0.15, 1);
+  impactLines(t, 0, 540, 1000, 0.3);
+  impactLines(t, T_VS, 540, 1020, 0.35); flash(t, T_VS, 0.25, 0.15); impactLines(t, T_FIN, 640, 1000, 0.4); flash(t, T_FIN, 0.4, 0.12);
+  if (t >= T_FIN) burst(640, 1000, t, T_FIN, 90, ['#ffc95e', '#fff', '#f0ae36'], 1500, 1.5, 80);
+  if (t >= SLOW0 && t < T_FIN) { ctx.save(); ctx.globalAlpha = smooth(SLOW0, SLOW0 + 0.15, t); txt('PHOTO FINISH', 540, 1490, 26, 'rgba(255,255,255,0.6)', 700, 'center', null, 10); ctx.restore(); }
+  if (t >= T_FIN && t < T_FIN + 0.12) { ctx.save(); ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.6 * (1 - (t - T_FIN) / 0.12); ctx.fillRect(0, 0, 1080, 1920); ctx.restore(); }
+}
+window.renderFrame = (t) => frame3(t, { scenes: (t) => runScenes(t, SC, SCENES), screen, PH, hook: { lines: [[['The only race that ', 0], ['matters', 1]]], tIn: 0, tOut: 2.4 },
+  after: (t) => { if (t >= 18.5) endText(t, 18.5, [['Beat', '#fff'], ['yesterday.', GOLDL]], 84); } });
+window.__allSteps = { scenes: SC, vs: T_VS, fin: T_FIN };
+window.sceneReady = FONTS_READY();

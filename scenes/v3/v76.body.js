@@ -1,0 +1,104 @@
+// 76. The Work You're Avoiding — he digs holes everywhere looking for the magic, except under the one boulder marked THE WORK.
+// The light leaks out of it; he finally swings at it, and on the second "avoiding" it breaks open.
+initCanvas('c');
+const FF = 1.3, DUR = 11.6 + FF;
+ATMO = { tint: [255, 180, 100], tintA: 0.06, shafts: 0.08, bokeh: 0.8 };
+CAP.y = 430;
+
+CAP.end = 9.9;   // in story time (captions are offset by FF)
+const G = 1290, BX = 820, T_LIGHT = 4.88, T_BREAK = 9.23;
+const HOLES = [[230, 0.1, 0.75], [400, 0.8, 1.5], [540, 1.55, 2.25], [310, 2.3, 2.75]];   // x, dig start, dig end
+const HITS = [6.0, 6.45, 6.9, 7.4, 7.9, 8.35, 8.83, 9.23];
+function ground() {
+  ctx.save(); const g = ctx.createLinearGradient(0, G, 0, 1520); g.addColorStop(0, '#3a2c20'); g.addColorStop(1, '#17110c'); ctx.fillStyle = g; ctx.fillRect(0, G, 1080, 230);
+  ctx.fillStyle = 'rgba(255,255,255,0.05)'; for (let i = 0; i < 40; i++) ctx.fillRect((i * 137) % 1080, G + 20 + (i * 53) % 190, 6, 4); ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.fillRect(0, G, 1080, 3);
+}
+function hole(x, d) { if (d <= 0) return; ctx.save(); ctx.fillStyle = '#0c0907'; ctx.beginPath(); ctx.ellipse(x, G + 2, 70, 70 * d, 0, 0, Math.PI); ctx.fill(); ctx.fillStyle = '#4a3828'; ctx.beginPath(); ctx.ellipse(x + 90, G - 4, 40 * d, 16 * d, 0, Math.PI, 0); ctx.fill(); ctx.restore(); }
+function boulder(t) {
+  const hitN = HITS.filter((h) => t >= h).length, br = clamp((t - T_BREAK) / 0.5);
+  const sh = HITS.reduce((a, h) => a + (t >= h ? 7 * Math.exp(-(t - h) * 12) * Math.sin((t - h) * 70) : 0), 0);
+  const leak = smooth(T_LIGHT, T_LIGHT + 0.3, t);
+  // glow inside, visible through cracks / once broken
+  if (leak > 0) glowDot(BX, G - 150, 260 + 260 * br, 0.25 * leak + 0.5 * br);
+  if (br < 1) {
+    ctx.save(); ctx.translate(BX + sh, 0);
+    const pieces = br > 0 ? [[-1, -1], [1, -1], [-1, 1], [1, 1]] : [[0, 0]];
+    pieces.forEach(([sx, sy]) => { ctx.save(); if (br > 0) { ctx.translate(sx * 260 * br, -200 * br * (sy < 0 ? 1.4 : 0.4) + 700 * br * br); ctx.rotate(sx * br * 1.2); ctx.globalAlpha *= 1 - br; ctx.beginPath(); ctx.rect(sx < 0 ? -260 : 0, sy < 0 ? G - 330 : G - 150, 260, 180); ctx.clip(); }
+      const RK = [[-240, 0], [-262, -96], [-205, -205], [-120, -292], [6, -330], [128, -296], [214, -206], [258, -88], [236, 0]];
+      ctx.fillStyle = '#585660'; ctx.strokeStyle = '#7b7a84'; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.beginPath(); RK.forEach(([px, py], i) => (i ? ctx.lineTo(px, G + py) : ctx.moveTo(px, G + py))); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.07)'; ctx.beginPath(); ctx.moveTo(-205, G - 205); ctx.lineTo(-120, G - 292); ctx.lineTo(6, G - 330); ctx.lineTo(-30, G - 230); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.beginPath(); ctx.moveTo(128, G - 296); ctx.lineTo(214, G - 206); ctx.lineTo(258, G - 88); ctx.lineTo(236, 0 + G); ctx.lineTo(120, G); ctx.lineTo(150, G - 160); ctx.closePath(); ctx.fill();
+      txt('THE WORK', 0, G - 140, 42, 'rgba(25,24,30,0.85)', 700, 'center', null, 4);
+      // glowing cracks
+      if (leak > 0) { ctx.strokeStyle = `rgba(255,201,94,${0.5 + 0.5 * leak})`; ctx.shadowColor = 'rgba(255,180,60,1)'; ctx.shadowBlur = 24; ctx.lineWidth = 6; ctx.lineCap = 'round';
+        const CR = [[[-40, G - 300], [-20, G - 240], [-50, G - 200]], [[120, G - 240], [90, G - 200], [110, G - 160]], [[-150, G - 120], [-110, G - 100], [-120, G - 60]], [[60, G - 60], [30, G - 100], [70, G - 130]], [[0, G - 300], [10, G - 200], [-30, G - 110], [0, G - 20]], [[-180, G - 200], [-120, G - 180]], [[180, G - 120], [130, G - 90]], [[-90, G - 20], [-60, G - 70], [-90, G - 120]]];
+        CR.slice(0, 2 + hitN).forEach((c) => { ctx.beginPath(); c.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p))); ctx.stroke(); }); }
+      ctx.restore(); });
+    ctx.restore();
+  }
+  if (t >= T_BREAK) { // the magic inside
+    const k = popK(t, T_BREAK + 0.05, 0.35), lift = smooth(9.9, 10.6, t);
+    rays(BX, G - 160 - 220 * lift, 80, 640, 16, t, 0.22);
+    ctx.save(); ctx.translate(BX - 40 * lift, G - 160 - 300 * lift); ctx.scale(k, k); glowDot(0, 0, 200, 0.8); ctx.fillStyle = '#fff3d6'; ctx.shadowColor = 'rgba(255,200,90,1)'; ctx.shadowBlur = 60; ctx.beginPath(); ctx.arc(0, 0, 62, 0, TAU); ctx.fill(); ctx.restore();
+    for (let i = 0; i < 8; i++) sparkle(BX + 160 * Math.cos(t * 1.5 + i * 0.8), G - 200 - 300 * lift + 120 * Math.sin(t * 2 + i), 1.6, t, i);
+    burst(BX, G - 160, t, T_BREAK, 90, ['#ffc95e', '#fff', '#f0ae36'], 1500, 1.4, 76); ringFlash(BX, G - 160, t, T_BREAK, '255,201,94', 60, 800, 0.7, 14); flash(t, T_BREAK, 0.22, 0.2);
+  }
+}
+function scene(t) {
+  ground();
+  HOLES.forEach(([x, a, b]) => hole(x, clamp((t - a) / (b - a)) * (t < a ? 0 : 1)));
+  // "?" above every empty hole
+  HOLES.forEach(([x, a, b]) => { const k = popK(t, b, 0.2) * (1 - smooth(4.6, 4.9, t)); if (k > 0) txt('?', x, G - 230 - 10 * Math.sin(t * 4 + x), 70 * k, 'rgba(240,238,232,0.6)', 700); });
+  boulder(t);
+  setFigureScale(1.4);
+  let x, P, tool = 'shovel', ang = 0;
+  const dig = HOLES.find(([hx, a, b]) => t >= a - 0.05 && t < b);
+  if (t < 2.75) {
+    if (dig) { x = dig[0] - 80; const ph = (t - dig[1]) * 9; P = { ...standPose(0), t: 0.5 + 0.25 * Math.sin(ph), h: 0.1, hipN: 0.45, kneeN: 0.7, hipF: 0.2, kneeF: 0.5 }; ang = 0.6 + 0.6 * Math.sin(ph); }
+    else { const prev = HOLES.filter(([hx, a, b]) => t >= b).pop() || [HOLES[0][0], 0, 0], next = HOLES.find(([hx, a]) => a > t) || prev; const u = next === prev ? 1 : clamp((t - prev[2]) / (next[1] - prev[2])); x = lerp(prev[0], next[0], u) - 80; P = prev[2] === 0 ? { ...standPose(0), t: 0.5, h: 0.1, hipN: 0.45, kneeN: 0.7, hipF: 0.2, kneeF: 0.5 } : runPose(t * 14, 0.8, 0.2); ang = 0.2; }
+  } else if (t < 4.8) { // looking around for the magic
+    x = 330 - 30 * smooth(2.75, 3.2, t); P = { ...standPose(Math.sin(t * 2)), h: -0.25 + 0.35 * Math.sin(t * 3.2), shN: 1.4, elN: 1.4 }; tool = 'none';
+  } else if (t < 5.85) { // the light leaks out of THE WORK; he turns away
+    x = 300; P = { ...standPose(0), h: 0.3, t: -0.05 }; tool = 'none';
+  } else { // picks up the pickaxe and swings
+    x = 470; tool = 'pick';
+    let prev = null; for (const h of HITS) if (t >= h - 0.38) prev = h;
+    const u = prev ? clamp((t - (prev - 0.38)) / 0.38) : 0;
+    const arm = u < 0.6 ? lerp(0.3, 3.4, easeOut(u / 0.6)) : lerp(3.4, 1.5, easeInOut((u - 0.6) / 0.4));
+    P = { ...standPose(0), t: u < 0.6 ? -0.15 : 0.35, h: 0.05, hipN: 0.35, kneeN: 0.3, hipF: -0.25, kneeF: 0.15, shN: arm, elN: 0.15, shF: arm - 0.1, elF: 0.2 };
+    if (t > T_BREAK + 0.25) { P = cheerPose(Math.sin(t * 6)); tool = 'none'; }
+  }
+  const turned = t >= 5.2 && t < 5.85;
+  const J = solve(P, x, G, 0);
+  const e = t < 2.75 ? 'worried' : t < 4.88 ? (t < 3.6 ? 'neutral' : 'worried') : t < 5.85 ? (t < 5.2 ? 'shock' : 'worried') : t < T_BREAK ? (HITS.some((h) => t >= h - 0.06 && t < h + 0.12) ? 'strain' : 'determined') : 'joy';
+  const draw = () => { const g = ctx;
+      if (tool === 'shovel') { g.save(); g.strokeStyle = '#9a7b55'; g.lineWidth = 8; g.lineCap = 'round'; const a = Math.atan2(J.wN[1] - J.sh[1], J.wN[0] - J.sh[0]) + ang * 0.4; const tip = [J.wN[0] + 150 * Math.cos(a), J.wN[1] + 150 * Math.sin(a)]; g.beginPath(); g.moveTo(J.wN[0] - 40 * Math.cos(a), J.wN[1] - 40 * Math.sin(a)); g.lineTo(...tip); g.stroke(); g.fillStyle = '#b9bcc4'; g.translate(...tip); g.rotate(a); g.beginPath(); g.roundRect(-4, -22, 44, 44, 10); g.fill(); g.restore(); }
+      if (tool === 'pick') { g.save(); g.strokeStyle = '#9a7b55'; g.lineWidth = 9; g.lineCap = 'round'; const a = Math.atan2(J.wN[1] - J.eN[1], J.wN[0] - J.eN[0]); const tip = [J.wN[0] + 130 * Math.cos(a), J.wN[1] + 130 * Math.sin(a)]; g.beginPath(); g.moveTo(...J.wN); g.lineTo(...tip); g.stroke(); g.strokeStyle = '#c9ccd2'; g.lineWidth = 10; g.translate(...tip); g.rotate(a + Math.PI / 2); g.beginPath(); g.arc(0, 30, 70, -Math.PI * 0.85, -Math.PI * 0.15); g.stroke(); g.restore(); }
+      hero(J, { expr: e, t, speed: tool === 'shovel' ? 0.5 : 0.3, blur: 20 + 20 * smooth(T_BREAK, T_BREAK + 0.3, t) }); };
+  if (turned) mirrorX(x, draw); else draw();
+  if (turned) sweat(x + 10, J.head[1] - 40, t, 2);
+  // dirt flying while he digs
+  if (dig) for (let i = 0; i < 6; i++) { const u = ((t * 2.2 + i / 6) % 1); ctx.save(); ctx.globalAlpha *= 1 - u; ctx.fillStyle = '#6b5236'; ctx.beginPath(); ctx.arc(dig[0] + 40 + 160 * u, G - 20 - 220 * u + 300 * u * u, 8, 0, TAU); ctx.fill(); ctx.restore(); }
+  // looking for magic: bubble with sparkles
+  const bk = popK(t, 2.96, 0.25) * (1 - smooth(4.7, 4.9, t)); if (bk > 0) { bubble(J.head[0] + 120, J.head[1] - 170, 80, bk, J.head[0] + 20, J.head[1] - 30); for (let i = 0; i < 3; i++) sparkle(J.head[0] + 100 + i * 22, J.head[1] - 180 + (i % 2) * 24, 1.6 * bk, t, i, GOLDL); }
+  // hit sparks
+  HITS.forEach((h, i) => { if (t >= h && t < h + 0.3) { burst(BX - 150, G - 170, t, h, 14, ['#fff', '#ffc95e'], 700, 0.35, 90 + i); } });
+  if (t >= T_LIGHT) ringFlash(BX, G - 160, t, T_LIGHT, '255,201,94', 80, 420, 0.5, 8);
+}
+// cold open: the payoff first (rock bursting), then a fast rewind through the whole story, then the story from the start
+function sceneT(t) { if (t < 0.8) return T_BREAK + 0.05 + t * 0.6; if (t < FF) return lerp(T_BREAK + 0.53, 0, easeInOut((t - 0.8) / (FF - 0.8))); return t - FF; }
+CAMK = [[0, BX - 40, G - 170, 1.9, 0.03], [0.8, BX - 40, G - 170, 1.75, 0], [FF, 470, 1150, 1.12, 0], [FF + 4.7, 470, 1150, 1.12, 0], [FF + 4.95, 640, 1110, 1.32, 0],
+        [FF + 5.8, 640, 1110, 1.3, 0], [FF + 6.0, 620, 1130, 1.18, 0], [FF + 9.1, 650, 1120, 1.25, 0], [FF + 9.3, 800, 1080, 1.55, 0], [DUR, 760, 1060, 1.35, 0]];
+SHAKES = [[0, 22, 0.25], ...HITS.map((h) => [FF + h, h === T_BREAK ? 26 : 9, 0.15])];
+PUNCHES = [[0, 0.07, 0.12], ...HITS.map((h) => [FF + h, h === T_BREAK ? 0.1 : 0.03, 0.1])];
+function screen(t) {
+  if (t < 0.8) recBadge(t, 'THE ENDING', 1);
+  if (t >= 0.8 && t < FF) rewindFX(t, 1);
+  if (t < 0.4) impactLines(t, 0, 540, 1000, 0.35);
+  impactLines(t, FF + T_BREAK, 540, 1000, 0.4); flash(t, FF + T_BREAK, 0.25, 0.15);
+}
+window.renderFrame = (t) => frame3(t, { scenes: (tt) => scene(sceneT(tt)), screen, PH, capOffset: FF, hook: { lines: [[['The ', 0], ['magic', 1], [' is in here', 0]]], tIn: 0, tOut: FF + 2.2 },
+  after: (t) => { if (t >= FF + 9.9) endText(t, FF + 9.9, [['Do the work', '#fff'], ['you avoid.', GOLDL]], 76); } });
+window.__allSteps = { light: T_LIGHT, hits: HITS, break: T_BREAK };
+window.sceneReady = FONTS_READY();

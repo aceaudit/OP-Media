@@ -15,37 +15,38 @@
 <script src="rig2d.js"></script>
 <script src="v2.js"></script>
 <script src="vo.js"></script>
+<script src="cine.js"></script>
 <script>
+const PH = [
+  [[0.0, "Seems"], [0.4, "like"], [0.56, "you"], [0.72, "forgot*"], [1.2, "again."]],
+  [[2.0, "So"], [2.24, "let"], [2.4, "me"], [2.64, "remind*"], [3.2, "you."]],
+  [[3.76, "You've"], [4.08, "made"], [4.32, "it"], [4.48, "through*"], [4.72, "things"]],
+  [[4.96, "you"], [5.12, "thought"], [5.36, "would"], [5.6, "break*"], [6.08, "you."]],
+  [[6.45, "You've"], [6.77, "smiled*"], [7.17, "with"], [7.33, "a"], [7.41, "heavy"], [7.97, "heart,*"]],
+  [[8.69, "just"], [8.93, "to"], [9.09, "make"], [9.33, "others"], [9.73, "comfortable."]],
+  [[11.17, "You've"], [11.41, "survived*"], [11.89, "days"], [12.21, "you"], [12.37, "didn't"], [12.61, "think"], [12.77, "you'd"], [13.17, "get"], [13.41, "through."]],
+  [[13.97, "Nights*"], [14.45, "where"], [14.61, "your"], [14.77, "mind"], [15.09, "wouldn't"], [15.41, "stop"], [15.65, "racing.*"]],
+  [[16.85, "Moments"], [17.33, "where"], [17.57, "everything"], [17.89, "felt"], [18.29, "like"], [18.61, "too"], [18.93, "much.*"]],
+  [[19.89, "But"], [20.13, "here*"], [20.37, "you*"], [20.61, "are.*"]],
+  [[21.08, "You"], [21.32, "forgot"], [21.72, "how"], [21.96, "far*"], [22.2, "you've"], [22.92, "come.*"]],
+  [[23.88, "You"], [24.12, "forgot"], [24.44, "that"], [24.6, "it's"], [24.92, "okay"], [25.48, "to"], [25.64, "rest,*"]],
+  [[27.08, "that"], [27.32, "you"], [27.48, "don't"], [27.72, "have"], [27.88, "to"], [28.04, "carry*"], [28.52, "it"], [28.84, "all."]],
+  [[30.12, "So,"], [30.76, "if"], [31.0, "no"], [31.24, "one's"], [31.56, "told"], [31.8, "you"], [32.04, "lately,"]],
+  [[33.4, "I'm"], [33.72, "proud!"], [34.28, "of"], [34.6, "you.*"]],
+  [[35.56, "For"], [35.8, "holding"], [36.6, "on,*"], [37.24, "for"], [37.64, "still"], [37.96, "trying.*"]],
+  [[39.2, "Even"], [39.52, "when"], [39.6, "it's"], [39.92, "hard,"]],
+  [[40.88, "you're"], [41.12, "not"], [41.28, "behind,"], [41.76, "you're"], [41.92, "not"], [42.08, "weak,"]],
+  [[42.48, "you're"], [42.72, "human.!"]],
+  [[43.84, "And"], [44.08, "that's"], [44.56, "enough.!"]],
+];
+
 // 73. Proud of You — a gentle reminder. He carries a heavy sack through every hard line, sets it down on "okay to rest",
 // a message arrives on "I'm proud of you", and the sun comes up on "that's enough".
 initCanvas('c');
-const DUR = 57.3;
-const PH = [
-  [[0.0, 'Seems'], [0.4, 'like'], [0.56, 'you'], [0.72, 'forgot*'], [1.2, 'again.']],
-  [[2.0, 'So'], [2.24, 'let'], [2.4, 'me'], [2.64, 'remind*'], [3.2, 'you.']],
-  [[3.76, "You've"], [4.08, 'made'], [4.32, 'it'], [4.48, 'through*'], [4.72, 'things']],
-  [[4.96, 'you'], [5.12, 'thought'], [5.36, 'would'], [5.6, 'break*'], [6.08, 'you.']],
-  [[6.72, "You've"], [6.96, 'stood'], [7.28, 'alone*'], [7.6, 'in'], [7.76, 'rooms']],
-  [[8.08, 'where'], [8.24, 'no'], [8.4, 'one'], [8.56, 'noticed'], [9.12, 'your'], [9.36, 'pain.*']],
-  [[10.4, "You've"], [10.72, 'smiled*'], [11.12, 'with'], [11.28, 'a'], [11.36, 'heavy'], [11.92, 'heart,*']],
-  [[12.64, 'just'], [12.88, 'to'], [13.04, 'make'], [13.28, 'others'], [13.68, 'comfortable.']],
-  [[15.12, "You've"], [15.36, 'survived*'], [15.84, 'days'], [16.16, 'you'], [16.32, "didn't"], [16.56, 'think'], [16.72, "you'd"], [17.12, 'get'], [17.36, 'through.']],
-  [[17.92, 'Nights*'], [18.4, 'where'], [18.56, 'your'], [18.72, 'mind'], [19.04, "wouldn't"], [19.36, 'stop'], [19.6, 'racing.*']],
-  [[20.8, 'Moments'], [21.28, 'where'], [21.52, 'everything'], [21.84, 'felt'], [22.24, 'like'], [22.56, 'too'], [22.88, 'much.*']],
-  [[23.84, 'But'], [24.08, 'here*'], [24.32, 'you*'], [24.56, 'are.*']],
-  [[25.32, "You've"], [25.8, 'been'], [25.96, 'the'], [26.12, 'strong*'], [26.44, 'one'], [26.68, 'for'], [27.0, 'so'], [27.32, 'long,']],
-  [[28.44, 'you'], [28.68, 'started'], [29.08, 'believing'], [29.48, 'that'], [29.64, 'you'], [29.8, "don't"], [30.12, 'need'], [30.44, 'anyone.*']],
-  [[31.88, 'You'], [32.12, 'forgot'], [32.52, 'how'], [32.76, 'far*'], [33.0, "you've"], [33.72, 'come.*']],
-  [[34.68, 'You'], [34.92, 'forgot'], [35.24, 'that'], [35.4, "it's"], [35.72, 'okay'], [36.28, 'to'], [36.44, 'rest,*']],
-  [[37.88, 'that'], [38.12, 'you'], [38.28, "don't"], [38.52, 'have'], [38.68, 'to'], [38.84, 'carry*'], [39.32, 'it'], [39.64, 'all.']],
-  [[40.92, 'So,'], [41.56, 'if'], [41.8, 'no'], [42.04, "one's"], [42.36, 'told'], [42.6, 'you'], [42.84, 'lately,']],
-  [[44.2, "I'm"], [44.52, 'proud!'], [45.08, 'of'], [45.4, 'you.*']],
-  [[46.36, 'For'], [46.6, 'holding'], [47.4, 'on,*'], [48.04, 'for'], [48.44, 'still'], [48.76, 'trying.*']],
-  [[50.0, 'Even'], [50.32, 'when'], [50.4, "it's"], [50.72, 'hard,']],
-  [[51.68, "you're"], [51.92, 'not'], [52.08, 'behind,'], [52.56, "you're"], [52.72, 'not'], [52.88, 'weak,']],
-  [[53.28, "you're"], [53.52, 'human.!']],
-  [[54.64, 'And'], [54.88, "that's"], [55.36, 'enough.!']],
-];
+const DUR = 47.2;
+ATMO = { tint: [255, 175, 120], tintA: 0.06, shafts: 0.07, bokeh: 0.9 }; CAP.y = 430;
+const FORCED = { brow: 0.55, browY: 0.0, eye: 0.85, mouth: 0.6, open: 0, blush: 0.1 };
+
 const FLOOR = 1400;
 const SC = [[0, 3.6], [3.6, 6.5], [6.5, 10.2], [10.2, 14.9], [14.9, 17.8], [17.8, 20.6], [20.6, 23.7], [23.7, 25.2], [25.2, 31.6], [31.6, 34.5], [34.5, 40.8], [40.8, 45.9], [45.9, 49.8], [49.8, 54.5], [54.5, 99]];
 const marks = makeMarks();
@@ -65,7 +66,7 @@ function s1(t) {
   groundMarks(marks, FLOOR, t * 160 * (1 - stop) + 2.4 * 160 * stop);
   setFigureScale(1.5);
   const P = mix(bentWalk(t), { ...standPose(0), t: 0.12, h: -0.45 }, smooth(2.3, 2.8, t));
-  const J = solve(P, 520, FLOOR, 0); sack(J, 2.1, 0.04 * Math.sin(t * 9) * (1 - stop)); fig(J, 18);
+  const J = solve(P, 520, FLOOR, 0); sack(J, 2.1, 0.04 * Math.sin(t * 9) * (1 - stop)); hero(J, { expr: t < 2.0 ? 'strain' : t < 2.6 ? 'shock' : 'tired', t, speed: 0.2, blur: 18 });
   const k = popK(t, 2.0, 0.3); if (k > 0) { ctx.save(); ctx.translate(560, 800); ctx.scale(k, k); panel(-280, -80, 560, 160, 34, 'rgba(255,201,94,0.6)', 'rgba(30,29,34,0.97)', 4);
     ctx.save(); ctx.translate(-200, 0); ctx.rotate(0.35 * Math.sin(t * 30) * Math.exp(-(t - 2.0) * 1.5)); ctx.fillStyle = GOLDL; ctx.beginPath(); ctx.moveTo(-26, 22); ctx.quadraticCurveTo(-26, -34, 0, -34); ctx.quadraticCurveTo(26, -34, 26, 22); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.arc(0, 30, 8, 0, TAU); ctx.fill(); ctx.restore();
     txt('Reminder', -130, -18, 40, '#f4f2ee', 700, 'left'); txt('now', 240, -18, 26, 'rgba(240,238,232,0.5)', 500, 'right'); txt('You forgot again.', -130, 30, 30, 'rgba(240,238,232,0.7)', 500, 'left');
@@ -78,7 +79,7 @@ function s2(t) {
   lightning(820, 760, 1380, t, 4.5, 0.22); lightning(300, 760, 1380, t, 5.6, 0.3); flash(t, 5.6, 0.18, 0.18);
   // crack runs past under his feet
   if (t >= 5.6) { const c0 = 900 - (t - 5.6) * 160; ctx.save(); ctx.strokeStyle = '#d9d4c8'; ctx.lineWidth = 5; ctx.shadowColor = '#fff'; ctx.shadowBlur = 10; ctx.beginPath(); const len = Math.min(1, (t - 5.6) / 0.25) * 340; ctx.moveTo(c0, FLOOR + 3); for (let i = 1; i <= 8; i++) ctx.lineTo(c0 - len * i / 8, FLOOR + 3 + (i % 2 ? 14 : -4) + i * 2); ctx.stroke(); ctx.restore(); }
-  setFigureScale(1.5); const J = solve(bentWalk(t), 500, FLOOR, 0); sack(J, 2.1, 0.04 * Math.sin(t * 9)); fig(J, 18);
+  setFigureScale(1.5); const J = solve(bentWalk(t), 500, FLOOR, 0); sack(J, 2.1, 0.04 * Math.sin(t * 9)); hero(J, { expr: t > 5.6 ? 'determined' : 'strain', t, speed: 0.5, blur: 18 });
 }
 // ---------------------------------------------------------------- 3. alone in a room
 function s3(t) {
@@ -88,27 +89,27 @@ function s3(t) {
   // two chatting pairs
   [[560, 1, 0], [690, -1, 1], [820, 1, 2], [950, -1, 3]].forEach(([x, dir, i]) => {
     let P = { ...standPose(Math.sin(t * 2 + i)), h: dir > 0 ? 0.0 : 0.0 }; if (i === 2 && t > 8.56 && t < 9.1) P.h = -0.6;   // one glance… and back
-    const J = solve(P, x, FLOOR, 0); if (dir < 0) mirrorX(x, () => figWhite(J, 0.55)); else figWhite(J, 0.55);
+    const J = solve(P, x, FLOOR, 0); const dw = () => hero(J, { expr: 'happy', t, col: WHITEC, blur: 6, seed: i }); if (dir < 0) mirrorX(x, dw); else dw();
     if (i % 2 === 0) { const on = Math.floor(t * 1.3 + i) % 2 === 0; speech(x + 60, J.head[1] - 70, 90, 50, on ? 1 : 0.85, x + 30, J.head[1] - 30, 'rgba(240,238,232,0.35)'); }
   });
   // him, alone, with his own rain cloud
   const P = { ...standPose(Math.sin(t * 2)), t: 0.1, h: 0.5, shN: 0.05, shF: -0.05 }; setFigureScale(1.35); const J = solve(P, 210, FLOOR, 0);
   const ck = popK(t, 8.1, 0.3); if (ck > 0) { ctx.save(); ctx.translate(215, J.head[1] - 120); ctx.scale(ck, ck); cloud(0, 0, 0.75, 'rgba(70,74,90,0.95)'); ctx.restore(); rain(150, J.head[1] - 90, 140, 380, t, t > 9.36 ? 14 : 7, 'rgba(150,180,230,0.6)', 7); }
-  fig(J, 16);
+  hero(J, { expr: 'sad', t, blur: 16 });
 }
 // ---------------------------------------------------------------- 4. smiled with a heavy heart
 function s4(t) {
   floorLine(FLOOR + 2, 0.2);
   // the others, comfortable
   setFigureScale(1.1);
-  [[230, 13.04], [860, 13.28]].forEach(([x, ts]) => { const k = popK(t, ts, 0.3); if (k <= 0) return; const J = solve(standPose(Math.sin(t * 2 + x)), x, FLOOR, 0); ctx.save(); ctx.globalAlpha *= clamp((k - 0.6) / 0.4); figWhite(J, 0.6);
-    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(J.head[0], J.head[1] + 2, L.head * 0.55, 0.3, Math.PI - 0.3); ctx.stroke(); ctx.restore(); heart(J.head[0] + 50, J.head[1] - 40, 26, '#ff8a7e', 10, popK(t, ts + 0.2, 0.2)); });
+  [[230, 13.04], [860, 13.28]].forEach(([x, ts]) => { const k = popK(t, ts, 0.3); if (k <= 0) return; const J = solve(standPose(Math.sin(t * 2 + x)), x, FLOOR, 0); ctx.save(); ctx.globalAlpha *= clamp((k - 0.6) / 0.4); hero(J, { expr: 'happy', t, col: WHITEC, blur: 6, seed: x });
+    ctx.restore(); heart(J.head[0] + 50, J.head[1] - 40, 26, '#ff8a7e', 10, popK(t, ts + 0.2, 0.2)); });
   setFigureScale(2.0);
   const drop = clamp((t - 11.2) / 0.35), yank = t > 11.55 ? Math.exp(-(t - 11.55) * 4) * Math.sin((t - 11.55) * 22) : 0;
   const P = { ...standPose(Math.sin(t * 2)), t: 0.04 + 0.1 * smooth(11.5, 11.9, t), h: 0.12 * smooth(11.5, 11.9, t), shN: 0.08, shF: -0.06 };
-  const J = solve(P, 540, FLOOR, 0); fig(J, 22);
+  const J = solve(P, 540, FLOOR, 0); hero(J, { expr: t < 10.72 ? 'sad' : t < 11.55 ? FORCED : exprMix(FORCED, 'cry', smooth(11.55, 11.9, t)), t, blur: 22 });
   // smile drawn on his face
-  const sm = clamp((t - 10.72) / 0.3); if (sm > 0) { ctx.save(); ctx.strokeStyle = '#3a2508'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(J.head[0], J.head[1] + 4, L.head * 0.5, Math.PI / 2 - 1.2 * sm, Math.PI / 2 + 1.2 * sm); ctx.stroke(); ctx.restore(); }
+  // (the forced smile is his face now)
   // the heart + the weight chained to it
   const hx = lerp(J.neck[0], J.pel[0], 0.3) + 4, hy = lerp(J.neck[1], J.pel[1], 0.3);
   heart(hx, hy, 64, t > 11.36 ? '#c84a3e' : RED, 20, 1);
@@ -129,14 +130,14 @@ function s5(t) {
   txt(String(day), 620, 1060, 150, '#1d1c22', 700);
   // tearing pages fly off
   for (let k = 1; k <= 3; k++) { const ft = (t * 16 + k / 3) % 1; if (u >= 1) break; ctx.save(); ctx.globalAlpha *= 1 - ft; ctx.globalAlpha *= 0.7; ctx.translate(620 + ft * 380, 1000 - ft * 260 + 500 * ft * ft); ctx.rotate(ft * 3); ctx.fillStyle = '#e9e6df'; ctx.fillRect(-70, -80, 140, 160); ctx.restore(); }
-  setFigureScale(0.95); const J = solve(bentWalk(t, 5), 230, 1240, 0); sack(J, 2.0); fig(J, 14);
+  setFigureScale(0.95); const J = solve(bentWalk(t, 5), 230, 1240, 0); sack(J, 2.0); hero(J, { expr: 'tired', t, speed: 0.3, blur: 14 });
 }
 // ---------------------------------------------------------------- 6. nights the mind would not stop racing
 function s6(t) {
   ctx.save(); ctx.fillStyle = '#10141f'; ctx.fillRect(130, 720, 240, 260); ctx.fillStyle = '#e8ecf6'; ctx.beginPath(); ctx.arc(280, 790, 28, 0, TAU); ctx.fill(); ctx.fillStyle = '#10141f'; ctx.beginPath(); ctx.arc(294, 780, 26, 0, TAU); ctx.fill(); ctx.strokeStyle = '#3a3a44'; ctx.lineWidth = 10; ctx.strokeRect(130, 720, 240, 260); ctx.restore();
   floorLine(FLOOR + 2, 0.2); bed(560, 1300, 520);
   setFigureScale(1.3); const P = { ...standPose(0), shN: 0.3, elN: 0.5, shF: 0.1, elF: 0.4, h: 0.1 }; const px = 620, py = 1300 - 40; const J = solve(P, px, 0, 0, false, py);
-  rotated(px, py, -Math.PI / 2, () => fig(J, 16)); blanket(560, 1300, 520, '#43597a');
+  rotated(px, py, -Math.PI / 2, () => hero(J, { expr: 'worried', t, speed: 0.1, blur: 16 })); blanket(560, 1300, 520, '#43597a');
   // the head after rotation: pelvis + (head offset rotated −90°)
   const hx = px + (J.head[1] - py), hy = py - (J.head[0] - px);
   // racing thoughts orbiting the head, faster on "racing"
@@ -160,13 +161,13 @@ function s7(t) {
   const top = [lerp(J.wN[0], J.wF[0], 0.5), Math.min(J.wN[1], J.wF[1]) - 6];
   BL.forEach((b, i) => { if (t < b) return; const u = clamp((t - b) / 0.22), y = lerp(top[1] - 900, top[1] - 34 - i * 66, easeOut(u)) + (u >= 1 ? 4 * Math.exp(-(t - b - 0.22) * 8) : 0), w = [190, 170, 200, 150, 180, 140][i];
     ctx.save(); ctx.translate(top[0] + Math.sin(t * 3 + i) * 3 * i, y); ctx.rotate((i % 2 ? 0.05 : -0.04) * i * 0.6); ctx.fillStyle = ['#4a4955', '#3d3c46', '#55535f', '#45444e', '#5a5866', '#3f3e48'][i]; ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(-w / 2, -32, w, 64, 8); ctx.fill(); ctx.stroke(); ctx.restore(); });
-  fig(J, 16);
+  hero(J, { expr: t > 22.88 ? 'cry' : t > 21.8 ? 'strain' : 'tired', t, speed: 0.2, blur: 16 });
   if (t >= 22.88) { ctx.save(); ctx.globalAlpha *= 0.5 * (1 - smooth(23.0, 23.6, t)); ctx.fillStyle = '#d9d4c8'; for (let i = 0; i < 10; i++) { const a = Math.PI + i / 9 * Math.PI, r = 60 + (t - 22.88) * 300; ctx.beginPath(); ctx.arc(540 + r * Math.cos(a), FLOOR - 4 + 0.2 * r * Math.sin(a), 6, 0, TAU); ctx.fill(); } ctx.restore(); }
 }
 // ---------------------------------------------------------------- 8. but here you are (map pin)
 function s8(t) {
   floorLine(FLOOR + 2, 0.2); spotlight(540, FLOOR, 0.2 * smooth(23.75, 24.1, t), 260);
-  setFigureScale(1.6); const P = mix({ ...kneelPose(0), h: 0.4 }, tallPose(Math.sin(t * 2)), smooth(23.8, 24.3, t)); const J = solve(P, 540, FLOOR, 0); fig(J, 22 + 20 * smooth(24.5, 24.8, t));
+  setFigureScale(1.6); const P = mix({ ...kneelPose(0), h: 0.4 }, tallPose(Math.sin(t * 2)), smooth(23.8, 24.3, t)); const J = solve(P, 540, FLOOR, 0); hero(J, { expr: t < 24.2 ? 'sad' : t < 24.56 ? 'calm' : 'proud', t, blur: 22 + 20 * smooth(24.5, 24.8, t) });
   const u = clamp((t - 24.25) / 0.31), py = lerp(380, J.head[1] - 150, easeOutBack(u));
   if (t >= 24.25) { ctx.save(); ctx.translate(540, py); ctx.fillStyle = RED; ctx.shadowColor = 'rgba(255,107,94,0.8)'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.arc(0, -40, 46, Math.PI * 0.8, Math.PI * 0.2); ctx.lineTo(0, 40); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -42, 18, 0, TAU); ctx.fill(); ctx.restore(); }
   pill('YOU ARE HERE', 540, J.head[1] - 300, t, 24.56, { size: 34 });
@@ -187,11 +188,11 @@ function s9(t) {
     let Jw = solve(Pw, x, FLOOR, 0);
     const offer = smooth(29.0 + i * 0.1, 29.4 + i * 0.1, t) * (1 - 0.6 * smooth(30.4, 31.0, t));
     if (offer > 0) { const tgt = [x - side * 160, Jw.sh[1] + 20]; const [s, e] = armIK(Jw.sh, side < 0 ? [x + 160 * offer, Jw.sh[1] + 30 - 30 * offer] : [x + 160 * offer, Jw.sh[1] + 30 - 30 * offer]); Pw = { ...Pw, shN: lerp(Pw.shN, s, offer), elN: lerp(Pw.elN, e, offer) }; Jw = solve(Pw, x, FLOOR, 0); }
-    if (side > 0) mirrorX(x, () => figWhite(Jw, 0.55)); else figWhite(Jw, 0.55);
+    const dw = () => hero(Jw, { expr: 'happy', t, col: WHITEC, blur: 6, seed: i }); if (side > 0) mirrorX(x, dw); else dw();
   });
   setFigureScale(1.5);
   ctx.save(); ctx.fillStyle = '#4a4955'; ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(170, slabY - 52, 740, 52, 10); ctx.fill(); ctx.stroke(); ctx.restore();
-  fig(J, 20);
+  hero(J, { expr: 'strain', t, blur: 20 });
 }
 // ---------------------------------------------------------------- 10. how far you've come (the road behind him)
 function pathPt(u) { // winding road from bottom-left to the top-right
@@ -215,7 +216,7 @@ function s10(t) {
   txt('DAY 1', 110, 1490, 26, 'rgba(240,238,232,0.6)', 700, 'center', null, 4);
   const [ex, ey] = pathPt(1);
   setFigureScale(1.0); const look = smooth(32.2, 32.6, t); let P = { ...standPose(Math.sin(t * 2)), h: 0.2 }; const J = solve(P, ex, ey, 0);
-  if (look > 0.5) mirrorX(ex, () => fig(J, 20 + 20 * lit)); else fig(J, 20 + 20 * lit);
+  const dr = () => hero(J, { expr: lit > 0.5 ? 'proud' : 'calm', t, blur: 20 + 20 * lit }); if (look > 0.5) mirrorX(ex, dr); else dr();
   if (lit >= 1) pill('TODAY', ex, ey + 60, t, 34.0, { size: 26 });
 }
 // ---------------------------------------------------------------- 11. okay to rest (sets the sack down; others share it)
@@ -249,10 +250,10 @@ function s11(t) {
     // friends come and take two of them
     setFigureScale(1.15);
     [[38.85, 0], [39.05, 1]].forEach(([ts, i]) => { if (t < ts) return; const w = clamp((t - ts) / 1.5), xx = lerp(1180, 380 + i * 110, smooth(0, 0.35, w)) + (w > 0.55 ? (w - 0.55) / 0.45 * 820 : 0);
-      const back = w > 0.55; let Pw = walkPose(t * 6 + i, 0.05); const Jw = solve(Pw, xx, FLOOR, 0); if (!back) mirrorX(xx, () => figWhite(Jw, 0.6)); else figWhite(Jw, 0.6); });
+      const back = w > 0.55; let Pw = walkPose(t * 6 + i, 0.05); const Jw = solve(Pw, xx, FLOOR, 0); const dw = () => hero(Jw, { expr: 'happy', t, col: WHITEC, blur: 6, seed: i + 5 }); if (!back) mirrorX(xx, dw); else dw(); });
     setFigureScale(1.4);
   }
-  fig(J, 20);
+  hero(J, { expr: t < 36.44 ? 'tired' : t < 38.84 ? exprMix('tired', 'calm', smooth(36.6, 37.4, t)) : 'happy', t, speed: 0.2 });
   // breathing ring once he sits
   if (t > sitT + 0.6) { const b = 0.5 + 0.5 * Math.sin((t - sitT) * 1.6); ctx.save(); ctx.strokeStyle = `rgba(255,201,94,${0.25 + 0.2 * b})`; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(J.head[0], J.head[1] + 40, 120 + 40 * b, 0, TAU); ctx.stroke(); ctx.restore(); }
 }
@@ -284,7 +285,7 @@ function s13(t) {
   const g1 = [J.sh[0] + 90, J.sh[1] - 40], g2 = [J.sh[0] + 60, J.sh[1] - 20];
   const [s1, e1] = armIK(J.sh, g1), [s2, e2] = armIK(J.sh, g2); P = { ...P, shN: s1, elN: e1, shF: s2, elF: e2 }; J = solve(P, fx, fy, 0);
   ctx.save(); ctx.strokeStyle = '#c9b48a'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(...anchor); ctx.quadraticCurveTo((anchor[0] + J.wN[0]) / 2, (anchor[1] + J.wN[1]) / 2 + 20, J.wN[0], J.wN[1]); ctx.lineTo(J.wN[0] - 140, J.wN[1] + 170); ctx.stroke(); ctx.fillStyle = '#6b5236'; ctx.fillRect(anchor[0] - 8, anchor[1] - 70, 16, 80); ctx.restore();
-  fig(J, 20);
+  hero(J, { expr: t > 46.6 && t < 47.4 ? 'strain' : 'determined', t, speed: 0.6 });
   star(anchor[0], anchor[1] - 110, 34, GOLDL, 30, 1, t * 0.5);
 }
 // ---------------------------------------------------------------- 14. not behind, not weak — human
@@ -298,7 +299,7 @@ function tag(s, x, y, t, tIn, tStrike, side) {
 function s14(t) {
   floorLine(FLOOR + 2, 0.2); const hum = smooth(53.5, 53.8, t);
   if (hum > 0) rays(540, 1080, 120, 700, 14, t, 0.14 * hum);
-  setFigureScale(1.6); const J = solve(mix({ ...standPose(Math.sin(t * 2)), h: 0.35 }, tallPose(Math.sin(t * 2)), smooth(52.0, 53.6, t)), 540, FLOOR, 0); fig(J, 18 + 30 * hum);
+  setFigureScale(1.6); const J = solve(mix({ ...standPose(Math.sin(t * 2)), h: 0.35 }, tallPose(Math.sin(t * 2)), smooth(52.0, 53.6, t)), 540, FLOOR, 0); hero(J, { expr: t < 52.0 ? 'sad' : t < 53.52 ? 'calm' : 'proud', t, blur: 18 + 30 * hum });
   tag('BEHIND', 260, 960, t, 51.68, 52.08, -1); tag('WEAK', 830, 1000, t, 52.56, 52.88, 1);
   if (t >= 53.52) { const hx = lerp(J.neck[0], J.pel[0], 0.3) + 4, hy = lerp(J.neck[1], J.pel[1], 0.3); glowDot(hx, hy, 220 * hum, 0.5); heart(hx, hy, 50, GOLDL, 30, popK(t, 53.52, 0.3) * (1 + 0.06 * Math.sin(t * 6))); ringFlash(hx, hy, t, 53.52, '255,201,94', 40, 520, 0.7, 10); }
 }
@@ -313,7 +314,18 @@ function s15(t) {
   if (t >= 55.36) { ringFlash(540, sy, t, 55.36, '255,201,94', 150, 700, 1.0, 10); }
 }
 const SCENES = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15];
-window.renderFrame = (t) => frame(t, (t) => runScenes(t, SC, SCENES), PH);
+// trimmed edit: two sentences removed (6.45–10.40 and 25.0–31.85 of the original); scenes keep their original story times
+const storyT = (t) => (t < 6.45 ? t : t < 21.05 ? t + 3.95 : t + 10.8);
+CAMK = [[0, 585, 1040, 1.9, 0.02], [0.5, 580, 1040, 1.75, 0], [1.9, 540, 1060, 1.12, 0], [3.55, 540, 1040, 1.0, 0], [3.6, 540, 1040, 1.0, 0], [6.4, 540, 1080, 1.12, 0],
+  [6.45, 540, 1000, 1.0, 0], [7.6, 540, 1050, 1.12, 0], [10.9, 540, 1050, 1.18, 0], [10.95, 540, 1050, 1.0, 0], [13.8, 540, 1050, 1.08, 0],
+  [13.85, 560, 1050, 1.12, 0], [16.6, 600, 1020, 1.28, 0], [16.65, 540, 950, 1.0, 0], [18.9, 540, 960, 1.05, 0], [19.7, 540, 1000, 1.15, 0],
+  [19.75, 540, 1100, 1.25, 0], [21.0, 540, 1050, 1.05, 0], [21.05, 520, 960, 1.0, 0], [23.65, 540, 980, 1.03, 0], [23.7, 500, 1100, 1.05, 0], [30.0, 560, 1100, 1.12, 0],
+  [30.05, 540, 980, 1.0, 0], [33.65, 540, 930, 1.06, 0], [35.05, 540, 940, 1.1, 0], [35.1, 600, 1050, 1.0, 0], [38.95, 650, 1000, 1.1, 0],
+  [39.0, 540, 1050, 1.0, 0], [42.72, 540, 1050, 1.12, 0], [43.65, 540, 1050, 1.15, 0], [43.7, 540, 1150, 1.25, 0], [47.2, 540, 1060, 1.0, 0]];
+SHAKES = [[4.5, 6, 0.15], [5.6, 14, 0.25], [7.6, 10, 0.2], [18.93, 14, 0.25], [35.8, 6, 0.2]];
+PUNCHES = [[2.0, 0.05, 0.12], [7.25, 0.04, 0.12], [20.61, 0.05, 0.12], [25.64, 0.04, 0.12], [33.72, 0.07, 0.16], [41.28, 0.03, 0.1], [42.08, 0.03, 0.1], [42.72, 0.06, 0.15], [44.56, 0.06, 0.15]];
+function screen(t) { whipLines(t, 6.45, 0.18, 1); whipLines(t, 21.05, 0.18, 1); impactLines(t, 18.93, 540, 1300, 0.3); impactLines(t, 33.72, 540, 1250, 0.35); }
+window.renderFrame = (t) => frame3(t, { scenes: (t) => runScenes(storyT(t), SC, SCENES), screen, PH, hook: { lines: [[["If you're ", 0], ['exhausted', 1]], [['watch this.', 0]]], tIn: 0, tOut: 2.6 } });
 window.__allSteps = { scenes: SC };
 window.sceneReady = FONTS_READY();
 </script>

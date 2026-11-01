@@ -15,6 +15,7 @@
 <script src="rig2d.js"></script>
 <script src="v2.js"></script>
 <script src="vo.js"></script>
+<script src="cine.js"></script>
 <script>
 const PH = [
   [[0.0, 'Every'], [0.48, 'successful*'], [1.36, 'person']],
@@ -28,7 +29,10 @@ const PH = [
 // 79. Painful Story — frame 0 is the win at the top of the story. The camera pulls back to show the open book:
 // the line drops into a painful valley before it climbs. He accepts the pain at the bottom, gets ready, and runs the climb.
 initCanvas('c');
-const DUR = 13.0;
+const DUR = 13.2;
+ATMO = { tint: [255, 170, 100], tintA: 0.07, shafts: 0.08, bokeh: 0.9 };
+SHAKES = [[2.16, 14, 0.2], [10.24, 16, 0.2], [11.25, 26, 0.28]]; PUNCHES = [[0.05, 0.05, 0.1], [11.25, 0.1, 0.15]];
+CAP.y = 430;
 CAP.end = 11.5;
 const KP = [[110, 900], [240, 960], [350, 1170], [450, 1300], [560, 1250], [680, 1090], [800, 890], [910, 770], [990, 745]];
 const CURVE = (() => { const out = []; for (let s = 0; s < KP.length - 1; s++) { const p0 = KP[Math.max(0, s - 1)], p1 = KP[s], p2 = KP[s + 1], p3 = KP[Math.min(KP.length - 1, s + 2)];
@@ -78,7 +82,9 @@ function scene(t) {
   else if (t < 10.24) { [x, y] = cp(U_VALLEY); const acc = smooth(8.1, 8.5, t), ready = smooth(9.3, 9.6, t); P = mix({ ...standPose(0), h: 0.5, t: 0.15 }, { ...tallPose(Math.sin(t * 2)), shN: 1.0, elN: 2.0 }, acc); P = mix(P, crouchPose(), ready); }
   else if (t < 11.25) { const u = easeInOut(clamp((t - 10.24) / 1.0)); [x, y] = cp(lerp(U_VALLEY, U_PEAK, u)); P = runPose(t * 16, 1, 0.35); }
   else { [x, y] = cp(U_PEAK); P = cheerPose(Math.sin(t * 6)); hold = true; }
-  const J = solve(P, x, y, 0); fig(J, 18 + 18 * (hold ? 1 : 0));
+  const J = solve(P, x, y, 0);
+  const e = t < 2.6 ? 'joy' : t < 5.2 ? (t > 4.2 ? 'sad' : 'neutral') : t < 8.32 ? (t < 7.5 ? 'cry' : 'sad') : t < 9.3 ? 'calm' : t < 10.24 ? 'determined' : t < 11.25 ? 'strain' : 'joy';
+  hero(J, { expr: e, t, speed: t >= 10.24 && t < 11.25 ? 1 : 0.3, blur: 18 + 18 * (hold ? 1 : 0) });
   if (hold) trophy(lerp(J.wN[0], J.wF[0], 0.5), Math.min(J.wN[1], J.wF[1]) - 36, t < 2.6 ? 0.8 : popK(t, 11.25, 0.3) * 0.8);
   // rain over him in the valley, clearing as he accepts it
   if (t >= 5.2 && t < 10.3) { const a = 1 - smooth(8.3, 8.9, t); ctx.save(); ctx.globalAlpha *= a; cloud(x + 10, y - 300, 0.6, 'rgba(90,94,110,0.95)'); rain(x - 50, y - 270, 110, 240, t, 8, 'rgba(150,180,230,0.7)', 3); ctx.restore(); if (t > 8.32) { ctx.save(); ctx.globalAlpha *= smooth(8.32, 8.7, t) * (1 - smooth(10.2, 10.4, t)); glowDot(x, y - 60, 140, 0.4); ctx.restore(); } }
@@ -88,7 +94,14 @@ function scene(t) {
   ctx.restore();
   if (t >= 2.05 && t < 2.6) { ctx.save(); ctx.globalAlpha *= 0.5 * (1 - (t - 2.05) / 0.55); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; for (let i = 0; i < 16; i++) { const a = i / 16 * TAU; ctx.beginPath(); ctx.moveTo(540 + Math.cos(a) * 300, 1040 + Math.sin(a) * 300); ctx.lineTo(540 + Math.cos(a) * 700, 1040 + Math.sin(a) * 700); ctx.stroke(); } ctx.restore(); }
 }
-window.renderFrame = (t) => frame(t, scene, PH, (t) => { if (t >= 11.5) endText(t, 11.5, [['Your comeback', '#fff'], ['is coming.', GOLDL]], 74); });
+function screen(t) {
+  if (t >= 2.0 && t < 2.75) { rewindFX(t, 1 - smooth(2.6, 2.75, t)); }
+  if (t < 2.0) recBadge(t, 'THE ENDING', 1 - smooth(1.8, 2.0, t));
+  impactLines(t, 10.24, 540, 1100, 0.3); impactLines(t, 11.25, 540, 900, 0.4); flash(t, 11.25, 0.25, 0.15);
+  if (t >= 11.25) burst(540, 900, t, 11.25, 80, ['#ffc95e', '#fff', '#f0ae36'], 1400, 1.4, 79);
+}
+window.renderFrame = (t) => frame3(t, { scenes: scene, screen, PH, hook: { lines: [[['Nobody shows you', 0]], [['this part', 1]]], tIn: 0, tOut: 2.3, y: 150 },
+  after: (t) => { if (t >= 11.5) endText(t, 11.5, [['Your comeback', '#fff'], ['is coming.', GOLDL]], 74); } });
 window.__allSteps = { reveal: 2.16, climbLine: 5.6, accept: 7.52, ready: 9.3, run: 10.24, top: 11.25 };
 window.sceneReady = FONTS_READY();
 </script>

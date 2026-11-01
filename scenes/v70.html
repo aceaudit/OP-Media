@@ -15,125 +15,125 @@
 <script src="rig2d.js"></script>
 <script src="v2.js"></script>
 <script src="vo.js"></script>
+<script src="cine.js"></script>
 <script>
-// 70. Two Choices — "Remember, every morning you have two choices…" (creator's reel audio, 7.3 s) + a 2 s visual payoff: he catches the dream.
+// 70. Two Choices (v3) — SHOCK OPEN: extreme close-up of a screaming alarm, whip back to reveal him asleep with his dream.
+// Lullaby while he snoozes (camera drifts in, clock races, dream fades) → record scratch on "or", his eye snaps open,
+// the beat drops on "wake", he chases the dream, slow-motion leap, catches it on the downbeat.
 initCanvas('c');
-const DUR = 9.4;
+const DUR = 10.4;
 const PH = [
   [[0.0, 'Remember,'], [0.88, 'every'], [1.2, 'morning*']],
   [[1.6, 'you'], [1.76, 'have'], [1.92, 'two*'], [2.16, 'choices.*']],
   [[3.04, 'Continue'], [3.52, 'to'], [3.6, 'sleep*'], [3.92, 'with'], [4.08, 'your'], [4.16, 'dreams…']],
-  [[4.88, 'or'], [5.12, 'wake'], [5.36, 'up'], [5.52, 'and'], [5.68, 'chase!'], [6.4, 'them.*']],
+  [[4.88, 'or'], [5.12, 'wake!'], [5.36, 'up'], [5.52, 'and'], [5.68, 'chase'], [6.4, 'them.*']],
 ];
-CAP.end = 8.1;
+CAP.end = 8.3; CAP.y = 430;
 const FLOOR = 1400, BX = 400, BY = 1290, K = 1.25;
-const T_SNOOZE = 3.04, T_REW = 4.88, T_WAKE = 5.12, T_UP = 5.3, T_RUN = 5.68, T_LEAP = 7.72, T_CATCH = 8.02;
+const T_SNOOZE = 3.04, T_OR = 4.88, T_EYE = 4.98, T_WAKE = 5.12, T_UP = 5.32, T_RUN = 5.68, T_LEAP = 7.72, T_CATCH = 8.25;
+ATMO = { tint: [120, 150, 255], tintA: 0.07, shafts: 0.05, bokeh: 0.8 };
+CAMK = [[0, 820, 1150, 2.7, 0.04], [0.82, 820, 1150, 2.55, -0.02], [1.15, 560, 1060, 1.12, 0], [3.0, 560, 1060, 1.12, 0], [4.8, 340, 1170, 1.55, 0.02],
+        [4.9, 250, 1236, 3.4, 0], [5.14, 250, 1236, 3.4, 0], [5.45, 560, 1060, 1.12, 0], [5.9, 640, 1080, 1.22, -0.025], [7.7, 650, 1080, 1.28, -0.02],
+        [8.25, 700, 1060, 1.55, 0], [10.4, 700, 1075, 1.42, 0]];
+SHAKES = [[0, 24, 0.22], [0.25, 14, 0.2], [0.5, 12, 0.2], [T_OR, 10, 0.12], [T_WAKE, 20, 0.2], [T_CATCH, 28, 0.28]];
+PUNCHES = [[T_EYE, 0.05, 0.08], [T_WAKE, 0.07, 0.12], [T_CATCH, 0.1, 0.16]];
 const marks = makeMarks();
-const scroll = (t) => (t < T_RUN ? 0 : 1100 * (t - T_RUN) * smooth(T_RUN, T_RUN + 0.4, t) - 0 * (t > T_CATCH ? (t - T_CATCH) : 0));
-function clockTime(t) {
-  if (t < T_SNOOZE + 0.1) return 0;
-  if (t < T_REW) return 270 * easeInOut((t - T_SNOOZE - 0.1) / 1.55);
-  if (t < T_REW + 0.26) return 270 * (1 - easeInOut((t - T_REW) / 0.26));
-  return 0;
+// slow motion on the leap: animation time runs at 0.32× from the leap to the catch
+const SLOW0 = 7.72, SLOW_F = 0.32;
+const animT = (t) => (t < SLOW0 ? t : t < T_CATCH ? SLOW0 + (t - SLOW0) * SLOW_F : SLOW0 + (T_CATCH - SLOW0) * SLOW_F + (t - T_CATCH));
+const A_CATCH = animT(T_CATCH);
+const scroll = (t) => (t < T_RUN ? 0 : 1050 * (animT(t) - T_RUN) * smooth(T_RUN, T_RUN + 0.35, t));
+function clockTime(t) { if (t < T_SNOOZE + 0.1) return 0; if (t < T_OR) return 270 * easeInOut((t - T_SNOOZE - 0.1) / 1.6); if (t < T_OR + 0.26) return 270 * (1 - easeInOut((t - T_OR) / 0.26)); return 0; }
+const fmtT = (m) => `${6 + Math.floor(m / 60)}:${String(Math.floor(m % 60)).padStart(2, '0')} AM`;
+function nightstand(x) { ctx.save(); ctx.fillStyle = '#3c3326'; ctx.fillRect(x - 80, 1270, 160, 130); ctx.fillStyle = '#4b3f2f'; ctx.fillRect(x - 90, 1262, 180, 16); ctx.restore(); }
+function windowMoon(x, t) { ctx.save(); ctx.fillStyle = '#10141f'; ctx.fillRect(x - 130, 760, 260, 300); const g = ctx.createRadialGradient(x + 40, 840, 4, x + 40, 840, 150); g.addColorStop(0, 'rgba(210,225,255,0.55)'); g.addColorStop(1, 'rgba(210,225,255,0)'); ctx.fillStyle = g; ctx.fillRect(x - 130, 760, 260, 300); ctx.fillStyle = '#e8ecf6'; ctx.beginPath(); ctx.arc(x + 40, 840, 30, 0, TAU); ctx.fill(); ctx.fillStyle = '#10141f'; ctx.beginPath(); ctx.arc(x + 54, 830, 28, 0, TAU); ctx.fill();
+  ctx.strokeStyle = '#3a3a44'; ctx.lineWidth = 12; ctx.strokeRect(x - 130, 760, 260, 300); ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(x, 760); ctx.lineTo(x, 1060); ctx.moveTo(x - 130, 910); ctx.lineTo(x + 130, 910); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; const b = ctx.createLinearGradient(x, 900, x + 300, 1300); b.addColorStop(0, 'rgba(150,180,255,0.10)'); b.addColorStop(1, 'rgba(150,180,255,0)'); ctx.fillStyle = b; ctx.beginPath(); ctx.moveTo(x - 120, 770); ctx.lineTo(x + 120, 770); ctx.lineTo(x + 420, 1330); ctx.lineTo(x + 40, 1330); ctx.fill(); ctx.restore(); }
+function expr(t) {
+  if (t < T_EYE) return 'sleep';
+  if (t < T_UP) return 'shock';
+  if (t < T_LEAP) return 'determined';
+  if (t < T_CATCH) return exprMix('determined', 'shock', 0.5 * clamp((t - T_LEAP) / 0.4));
+  return 'joy';
 }
-function fmtT(m) { const h = 6 + Math.floor(m / 60), mm = Math.floor(m % 60); return `${h}:${String(mm).padStart(2, '0')} AM`; }
-function card(x, y, lab, state, k, t) {
-  if (k <= 0) return; ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
-  const on = state === 'on', gold = state === 'gold', dim = state === 'dim';
-  ctx.globalAlpha *= dim ? 0.35 : 1;
-  ctx.fillStyle = gold ? GOLDL : 'rgba(24,23,28,0.96)'; ctx.strokeStyle = gold ? GOLDL : on ? '#f4f2ee' : 'rgba(255,255,255,0.25)'; ctx.lineWidth = 4;
-  if (gold) { ctx.shadowColor = 'rgba(255,180,60,0.9)'; ctx.shadowBlur = 40; }
-  ctx.beginPath(); ctx.roundRect(-190, -66, 380, 132, 30); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
-  txt(lab, 26, 4, 44, gold ? INK : '#f4f2ee', 700);
-  // icon
-  if (lab === 'SNOOZE') { txt('z', -128, -10, 34, '#ffd98a', 700); txt('z', -108, -28, 26, '#ffd98a', 700); txt('z', -146, 12, 44, '#ffd98a', 700); }
-  else { ctx.fillStyle = gold ? INK : GOLDL; ctx.beginPath(); ctx.arc(-130, 6, 16, 0, TAU); ctx.fill(); ctx.strokeStyle = gold ? INK : GOLDL; ctx.lineWidth = 5; ctx.lineCap = 'round';
-    for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + t; ctx.beginPath(); ctx.moveTo(-130 + 24 * Math.cos(a), 6 + 24 * Math.sin(a)); ctx.lineTo(-130 + 34 * Math.cos(a), 6 + 34 * Math.sin(a)); ctx.stroke(); } }
-  ctx.restore();
-}
-function nightstand(x) { ctx.save(); ctx.fillStyle = '#3c3326'; ctx.fillRect(x - 80, 1270, 160, 130); ctx.fillStyle = '#4b3f2f'; ctx.fillRect(x - 90, 1262, 180, 16); ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(x - 60, 1300, 120, 4); ctx.fillRect(x - 60, 1345, 120, 4); ctx.restore(); }
-function windowMoon(x, t) { ctx.save(); ctx.fillStyle = '#10141f'; ctx.fillRect(x - 130, 760, 260, 300); const g = ctx.createRadialGradient(x + 40, 840, 4, x + 40, 840, 140); g.addColorStop(0, 'rgba(210,225,255,0.5)'); g.addColorStop(1, 'rgba(210,225,255,0)'); ctx.fillStyle = g; ctx.fillRect(x - 130, 760, 260, 300); ctx.fillStyle = '#e8ecf6'; ctx.beginPath(); ctx.arc(x + 40, 840, 30, 0, TAU); ctx.fill(); ctx.fillStyle = '#10141f'; ctx.beginPath(); ctx.arc(x + 54, 830, 28, 0, TAU); ctx.fill();
-  ctx.strokeStyle = '#3a3a44'; ctx.lineWidth = 12; ctx.strokeRect(x - 130, 760, 260, 300); ctx.lineWidth = 8; ctx.beginPath(); ctx.moveTo(x, 760); ctx.lineTo(x, 1060); ctx.moveTo(x - 130, 910); ctx.lineTo(x + 130, 910); ctx.stroke(); ctx.restore(); }
-// lying / getting up / running figure
-function hero(t) {
+function drawHero(t) {
   setFigureScale(K);
-  const wake = smooth(T_UP - 0.18, T_UP + 0.1, t);            // 0 lying → 1 up
-  if (t < T_UP + 0.1) {
-    // lying: pelvis on the mattress, head on the pillow (rotated −90°)
+  const wake = smooth(T_UP - 0.16, T_UP + 0.08, t);
+  if (t < T_UP + 0.08) {
     const breathe = Math.sin(t * 2.2) * 0.02, P = { ...standPose(0), shN: 0.25 + breathe, elN: 0.6, shF: 0.1, elF: 0.4, h: 0.15 };
     const px = BX + 2, py = BY - 38, J = solve(P, px, 0, 0, false, py);
-    const ang = lerp(-Math.PI / 2, 0, wake), lift = 160 * Math.sin(Math.PI * wake);
-    ctx.save(); ctx.translate(0, -lift); rotated(px, py, ang, () => fig(J, 18)); ctx.restore();
+    const ang = lerp(-Math.PI / 2, 0, wake), lift = 170 * Math.sin(Math.PI * wake);
+    ctx.save(); ctx.translate(0, -lift); rotated(px, py, ang, () => hero(J, { expr: expr(t), t, speed: 0.1 })); ctx.restore();
     if (wake < 0.3) blanket(BX, BY, 480, '#5f7ea6');
+    if (t >= T_EYE && t < T_EYE + 0.2) glowDot(px - 160, py - 6, 120, 0.5 * (1 - (t - T_EYE) / 0.2), '255,255,255');
     return null;
   }
-  // up and running
-  const run = t >= T_RUN - 0.05, s = t - T_UP;
+  const a = animT(t);
   let x = lerp(560, 600, smooth(T_UP, T_RUN, t)), lift = 0, P;
   if (t < T_RUN) P = { ...standPose(0), t: 0.15, shN: 0.6, elN: 0.6 };
-  else if (t < T_LEAP) P = runPose((t - T_RUN) * 15, 1, 0.3);
-  else if (t < T_CATCH + 0.2) { const u = clamp((t - T_LEAP) / 0.42); P = mix(jumpPose(), cheerPose(0), smooth(0.4, 0.8, u)); lift = 150 * Math.sin(Math.PI * u); x = lerp(600, 690, u); }
+  else if (t < T_LEAP) P = runPose((a - T_RUN) * 15, 1, 0.32);
+  else if (t < T_CATCH + 0.25) { const u = clamp((a - animT(T_LEAP)) / (A_CATCH - animT(T_LEAP) + 0.05)); P = mix(jumpPose(), cheerPose(0), smooth(0.55, 0.95, u)); lift = 170 * Math.sin(Math.PI * Math.min(1, u * 0.8)); x = lerp(600, 690, u); }
   else { P = cheerPose(Math.sin(t * 9)); x = 690; }
   const J = solve(P, x, FLOOR, lift);
-  fig(J, 20 + 26 * smooth(T_CATCH, T_CATCH + 0.3, t));
+  hero(J, { expr: expr(t), t, speed: t >= T_RUN ? 1 : 0.4, blur: 20 + 26 * smooth(T_CATCH, T_CATCH + 0.3, t) });
   return J;
 }
 function dreamStar(t, J) {
-  // inside the bubble until "up", then flies out ahead of him; caught on the leap
-  const hover = [890 + 18 * Math.sin(t * 3), 1080 + 22 * Math.sin(t * 4.2)];
-  const inB = [540, 1010];
+  const hover = [890 + 18 * Math.sin(t * 3), 1060 + 22 * Math.sin(t * 4.2)], inB = [540, 1010];
   let p, r = 34, glow = 30;
-  const fade = (1 - smooth(T_SNOOZE + 0.4, T_REW - 0.2, t)) * 0.75 + 0.25 + 0.75 * smooth(T_REW, T_REW + 0.25, t) * (t > T_REW ? 1 : 0);
-  if (t < T_UP) { p = inB; r = 34; }
+  if (t < T_UP) p = inB;
   else if (t < T_UP + 0.45) { const u = easeInOut((t - T_UP) / 0.45); p = [lerp(inB[0], hover[0], u), lerp(inB[1], hover[1], u) - 120 * Math.sin(Math.PI * u)]; r = lerp(34, 46, u); }
-  else if (t < T_CATCH - 0.15 || !J) { p = hover; r = 46; }
-  else if (t < T_CATCH) { const u = (t - (T_CATCH - 0.15)) / 0.15; p = [lerp(hover[0], J.wN[0], u), lerp(hover[1], J.wN[1] - 30, u)]; r = 46; }
-  else { p = [lerp(J.wN[0], J.wF[0], 0.5), Math.min(J.wN[1], J.wF[1]) - 40]; r = 46 + 6 * Math.sin(t * 7); glow = 60; }
-  const a = t < T_REW ? clamp(lerp(1, 0.25, smooth(T_SNOOZE + 0.4, T_REW - 0.2, t))) : 1;
+  else if (t < T_CATCH - 0.4 || !J) { p = hover; r = 46; }
+  else if (t < T_CATCH) { const u = easeInOut((t - (T_CATCH - 0.4)) / 0.4); p = [lerp(hover[0], J.wN[0], u), lerp(hover[1], J.wN[1] - 30, u)]; r = 46; }
+  else { p = [lerp(J.wN[0], J.wF[0], 0.5), Math.min(J.wN[1], J.wF[1]) - 40]; r = 48 + 6 * Math.sin(t * 7); glow = 70; }
+  const a = t < T_OR ? lerp(1, 0.25, smooth(T_SNOOZE + 0.4, T_OR - 0.2, t)) : 1;
   ctx.save(); ctx.globalAlpha *= a;
-  if (t >= T_UP) { glowDot(p[0], p[1], 150 + (t > T_CATCH ? 200 * smooth(T_CATCH, T_CATCH + 0.5, t) : 0), 0.5); for (let i = 0; i < 4; i++) sparkle(p[0] + 70 * Math.cos(t * 2 + i * 1.6), p[1] + 60 * Math.sin(t * 2.6 + i * 1.6), 1.4, t, i); }
-  star(p[0], p[1], r, a < 0.6 ? '#b9a27a' : GOLDL, glow, 1, t * 0.8);
-  ctx.restore();
+  if (t >= T_UP) { glowDot(p[0], p[1], 160 + (t > T_CATCH ? 260 * smooth(T_CATCH, T_CATCH + 0.5, t) : 0), 0.55); for (let i = 0; i < 5; i++) sparkle(p[0] + 70 * Math.cos(t * 2 + i * 1.3), p[1] + 60 * Math.sin(t * 2.6 + i * 1.3), 1.5, t, i); }
+  star(p[0], p[1], r, a < 0.6 ? '#b9a27a' : GOLDL, glow, 1, t * 0.8); ctx.restore();
 }
 function scene(t) {
   const sc = scroll(t);
-  ctx.save(); ctx.translate(540, 1440); ctx.scale(1.2, 1.2); ctx.translate(-540, -1440);
   ctx.save(); ctx.translate(-sc, 0);
-  windowMoon(260, t);
-  floorLine(FLOOR + 2, 0.22);
-  bed(BX, BY, 480);
-  nightstand(820);
-  // alarm clock: rings from frame 0, again at "wake"
-  const ring = (t < 1.9 ? 1 : 0) + (t >= T_WAKE && t < T_RUN + 0.3 ? 1 : 0);
-  const m = clockTime(t);
+  windowMoon(170, t); floorLine(FLOOR + 2, 0.22); bed(BX, BY, 480); nightstand(820);
+  const ring = (t < 1.9 ? 1 : 0) + (t >= T_WAKE && t < T_RUN + 0.3 ? 1 : 0), m = clockTime(t);
   clockFace(820, 1188, 58, 6, m, ring, t);
-  const rew = t >= T_REW && t < T_REW + 0.3;
-  ctx.save(); const lab = fmtT(m); ctx.globalAlpha *= 1; panel(820 - 92, 1072 - 26, 184, 52, 26, rew ? GOLDL : 'rgba(255,255,255,0.2)'); txt(lab, 820, 1073, 30, m > 60 ? RED : '#f4f2ee', 700); ctx.restore();
-  if (rew) { ctx.save(); ctx.strokeStyle = 'rgba(255,217,138,0.7)'; ctx.lineWidth = 6; ctx.lineCap = 'round'; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(820, 1188, 80 + i * 16, -2.4 - (t - T_REW) * 12, -1.0 - (t - T_REW) * 12, true); ctx.stroke(); } ctx.restore(); txt('◀◀', 820, 980, 44, GOLDL, 700, 'center', 'rgba(255,180,60,0.9)'); }
+  panel(820 - 92, 1072 - 26, 184, 52, 26, t >= T_OR && t < T_OR + 0.3 ? GOLDL : 'rgba(255,255,255,0.2)'); txt(fmtT(m), 820, 1073, 30, m > 60 ? RED : '#f4f2ee', 700);
   ctx.restore();
-  // dream bubble over the sleeper (from frame 0); fades while he snoozes, comes back on the rewind, pops when he gets up
-  const bubA = t < T_REW ? lerp(1, 0.35, smooth(T_SNOOZE + 0.4, T_REW - 0.2, t)) : 1;
-  const bubK = t < T_UP ? 1 + 0.03 * Math.sin(t * 3) : 1 - smooth(T_UP, T_UP + 0.18, t);
+  const bubA = t < T_OR ? lerp(1, 0.35, smooth(T_SNOOZE + 0.4, T_OR - 0.2, t)) : 1, bubK = t < T_UP ? 1 + 0.03 * Math.sin(t * 3) : 1 - smooth(T_UP, T_UP + 0.18, t);
   if (bubK > 0.01) { ctx.save(); ctx.globalAlpha *= bubA; bubble(540, 1010, 110, bubK, 300, 1225, 'rgba(22,21,26,0.92)', bubA < 0.6 ? 'rgba(255,255,255,0.3)' : GOLDL); ctx.restore(); }
-  if (t < T_UP && t < T_SNOOZE + 2) zzz(250, 1150, t, 1 - smooth(T_WAKE - 0.1, T_WAKE, t));
-  if (t >= T_REW && t < T_UP) zzz(250, 1150, t, 0);
-  const Jh = hero(t);
-  // ground marks + speed once he runs
-  if (t >= T_RUN) { groundMarks(marks, FLOOR, sc); ctx.save(); ctx.globalAlpha *= smooth(T_RUN, T_RUN + 0.3, t) * (1 - smooth(T_CATCH, T_CATCH + 0.3, t)); speedLines(t, 900, 1380, 12, 1, 0.22, 160); ctx.restore(); }
+  if (t < 4.8) zzz(250, 1150, t, 1 - smooth(4.6, 4.8, t));
+  const Jh = drawHero(t);
+  if (t >= T_RUN) { groundMarks(marks, FLOOR, sc); ctx.save(); ctx.globalAlpha *= smooth(T_RUN, T_RUN + 0.3, t) * (1 - smooth(T_CATCH, T_CATCH + 0.3, t)); speedLines(animT(t), 880, 1390, 14, 1, 0.24, 180); ctx.restore(); }
   dreamStar(t, Jh);
-  if (t >= T_CATCH) { ringFlash(690, 980, t, T_CATCH, '255,201,94', 60, 760, 0.7, 14); }
-  ctx.restore();
-  if (t >= T_CATCH) { burst(540 + 150 * 1.2, 1440 - 440 * 1.2, t, T_CATCH, 70, ['#ffc95e', '#fff', '#f0ae36'], 1400, 1.4, 70); flash(t, T_CATCH, 0.18, 0.2); }
-  // the two choices
-  const fadeCards = 1 - smooth(T_RUN + 0.2, T_RUN + 0.6, t);
-  if (fadeCards > 0) { ctx.save(); ctx.globalAlpha *= fadeCards;
-    const sL = t >= T_REW ? 'dim' : t >= T_SNOOZE ? 'on' : 'idle', sR = t >= T_WAKE ? 'gold' : t >= T_SNOOZE ? 'dim' : 'idle';
-    card(300, 720, 'SNOOZE', sL, popK(t, 1.92, 0.25) * (sL === 'on' ? 1.05 : 1), t); card(780, 720, 'WAKE UP', sR, popK(t, 2.16, 0.25) * (sR === 'gold' ? 1.06 : 1), t);
-    if (t >= 1.92) txt('OR', 540, 722, 30, 'rgba(240,238,232,0.6)', 700); ctx.restore();
-    if (t >= T_WAKE) { burst(780, 720, t, T_WAKE, 40, ['#ffc95e', '#fff'], 900, 1.0, 12); ringFlash(780, 720, t, T_WAKE, '255,201,94', 80, 420, 0.5, 10); } }
+  if (t >= T_CATCH) ringFlash(690, 980, t, T_CATCH, '255,201,94', 60, 820, 0.7, 14);
 }
-window.renderFrame = (t) => frame(t, scene, PH, (t) => { if (t >= 8.1) endText(t, 8.1, [['Snooze or', '#fff'], ['chase?', GOLDL]], 72); });
-window.__allSteps = { snooze: T_SNOOZE, rewind: T_REW, wake: T_WAKE, run: T_RUN, catch: T_CATCH };
+function choice(x, y, lab, state, k, t) {
+  if (k <= 0) return; ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
+  const gold = state === 'gold', dim = state === 'dim', on = state === 'on'; ctx.globalAlpha *= dim ? 0.35 : 1;
+  ctx.fillStyle = gold ? GOLDL : 'rgba(24,23,28,0.96)'; ctx.strokeStyle = gold ? GOLDL : on ? '#f4f2ee' : 'rgba(255,255,255,0.25)'; ctx.lineWidth = 4;
+  if (gold) { ctx.shadowColor = 'rgba(255,180,60,0.9)'; ctx.shadowBlur = 40; } ctx.beginPath(); ctx.roundRect(-200, -66, 400, 132, 30); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
+  txt(lab, 30, 4, 46, gold ? INK : '#f4f2ee', 700);
+  if (lab === 'SNOOZE') { txt('z', -130, -10, 34, '#ffd98a', 700); txt('z', -110, -28, 26, '#ffd98a', 700); txt('z', -148, 12, 44, '#ffd98a', 700); }
+  else { ctx.fillStyle = gold ? INK : GOLDL; ctx.beginPath(); ctx.arc(-135, 6, 16, 0, TAU); ctx.fill(); ctx.strokeStyle = gold ? INK : GOLDL; ctx.lineWidth = 5; ctx.lineCap = 'round'; for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + t; ctx.beginPath(); ctx.moveTo(-135 + 24 * Math.cos(a), 6 + 24 * Math.sin(a)); ctx.lineTo(-135 + 34 * Math.cos(a), 6 + 34 * Math.sin(a)); ctx.stroke(); } }
+  ctx.restore();
+}
+function screen(t, c) {
+  const fadeCards = 1 - smooth(T_RUN + 0.2, T_RUN + 0.6, t);
+  if (fadeCards > 0 && t >= 1.9) { ctx.save(); ctx.globalAlpha *= fadeCards;
+    const sL = t >= T_OR ? 'dim' : t >= T_SNOOZE ? 'on' : 'idle', sR = t >= T_WAKE ? 'gold' : t >= T_SNOOZE ? 'dim' : 'idle';
+    choice(290, 700, 'SNOOZE', sL, popK(t, 1.92, 0.25) * (sL === 'on' ? 1.05 : 1), t); choice(790, 700, 'WAKE UP', sR, popK(t, 2.16, 0.25) * (sR === 'gold' ? 1.08 : 1), t);
+    txt('OR', 540, 702, 30, 'rgba(240,238,232,0.6)', 700); ctx.restore();
+    if (t >= T_WAKE) { burst(790, 700, t, T_WAKE, 40, ['#ffc95e', '#fff'], 900, 1.0, 12); ringFlash(790, 700, t, T_WAKE, '255,201,94', 80, 420, 0.5, 10); } }
+  impactLines(t, 0, 540, 1000, 0.3);
+  if (t >= T_OR && t < T_OR + 0.12) { ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 0, 1080, 1920); ctx.restore(); }
+  impactLines(t, T_WAKE, 540, 1000, 0.3); impactLines(t, T_CATCH, 540, 1000, 0.4);
+  flash(t, T_WAKE, 0.18, 0.15); flash(t, T_CATCH, 0.28, 0.2);
+  if (t >= T_CATCH) burst(540, 900, t, T_CATCH, 90, ['#ffc95e', '#fff', '#f0ae36'], 1500, 1.5, 70);
+  if (t >= SLOW0 + 0.05 && t < T_CATCH) { ctx.save(); ctx.globalAlpha = 0.9 * smooth(SLOW0, SLOW0 + 0.15, t); txt('SLOW-MO', 540, 1470, 26, 'rgba(255,255,255,0.55)', 700, 'center', null, 10); ctx.restore(); }
+}
+window.renderFrame = (t) => frame3(t, { scenes: scene, screen, PH, hook: { lines: [[['You make this ', 0], ['choice', 1]], [['every morning.', 0]]], tIn: 0, tOut: 2.9 },
+  after: (t) => { if (t >= 8.3) endText(t, 8.3, [['Snooze or', '#fff'], ['chase?', GOLDL]], 84); } });
+window.__allSteps = { or: T_OR, eye: T_EYE, wake: T_WAKE, run: T_RUN, leap: T_LEAP, catch: T_CATCH };
 window.sceneReady = FONTS_READY();
 </script>
 </body>

@@ -1,28 +1,80 @@
-# 73. Proud of You — creator's reel audio untouched (voice + its own music) + very soft accents.
+# 73. Proud of You (v3) — separated voice, trimmed (two sentences cut) + score: a heavy low drone and footsteps under the
+# sack, a reminder ping, a storm, a sad piano that tightens as the blocks pile on, silence + heartbeat on the collapse,
+# warmth on "here you are", typing → the message lands on "I'm proud of you" with a full swell, and a sunrise chord on "enough".
 import numpy as np
-from soundlib import *
-from voedit import load, place, fade
-from scipy.io import wavfile
-v = fade(load('/home/claude/batch70/s04.wav'), 0.0, 0.05)
-voice = place(v, len(t)); pk = np.max(np.abs(voice))
-fx = Fx()
-for ts in (3.6, 6.5, 10.2, 14.9, 17.8, 20.6, 23.7, 25.2, 31.6, 34.5, 40.8, 45.9, 49.8, 54.5): fx.whoosh(ts, 0.008, 0.07, 1200, 5000)
-for f, dt in ((1318.51, 0), (1760.0, 0.08)): fx.ping(2.0 + dt, f, 0.008, 0.35)                       # reminder
-for ts in (4.5, 5.6): fx.noise_env(np.exp(-np.maximum(0, t - ts) / 0.7) * (t >= ts), 0.012, 40, 250)  # distant thunder
-fx.noise_env(smooth(3.6, 3.9, t) * (1 - smooth(6.3, 6.6, t)), 0.0025, 2000, 8000)                   # rain
-fx.hit(11.55, 0.014, 60, 0.2, 0.3, 0.01, 0.4)                                                       # the weight lands
-for i in range(30): fx.hit(14.95 + i * 0.095, 0.0025, 4000, 0.008, 0.8, 0.003, 0.02)                # pages tearing
-for i in range(6): fx.hit(17.9 + i * 0.5, 0.003, 2600, 0.01, 0.5, 0.004, 0.03)                      # clock at night
-for ts in (20.8, 21.28, 21.52, 21.84, 22.24, 22.56): fx.hit(ts + 0.2, 0.01, 70, 0.08, 0.4, 0.01, 0.2)
-fx.hit(22.9, 0.014, 55, 0.2, 0.4, 0.01, 0.4)
-fx.ping(24.56, 1046.5, 0.009, 0.5); fx.ping(24.62, 1567.98, 0.006, 0.5)                              # you are here
-fx.noise_env(smooth(25.2, 25.5, t) * (1 - smooth(31.3, 31.6, t)), 0.002, 2000, 8000)
-for i in range(5): fx.ping(33.4 + i * 0.12, [659.25, 783.99, 880.0, 1046.5, 1318.51][i], 0.006, 0.4)
-fx.hit(36.6, 0.014, 60, 0.15, 0.4, 0.01, 0.3)                                                       # sack set down
-fx.ping(44.45, 880.0, 0.008, 0.5); fx.ping(44.5, 1318.51, 0.007, 0.6)                               # message arrives
-for f, dt in ((659.25, 0), (830.61, 0.06), (987.77, 0.12)): fx.bell(53.52 + dt, f, 0.008, 2.0)
-for f, dt in ((523.25, 0), (659.25, 0.08), (783.99, 0.16), (1046.5, 0.24)): fx.bell(55.36 + dt, f, 0.008, 2.4)
-mix = voice + fx.a * pk * 2.2
-mix *= 1 - smooth(DUR - 0.05, DUR, t)
-st = np.stack([mix, mix], axis=1); st /= np.max(np.abs(st)) / 0.89
-wavfile.write('sound73.wav', SR, (st * 32767).astype(np.int16)); print('ok sound73.wav', round(pk, 3))
+from score import *
+from voedit import load, xsplice
+D = 47.2
+voice = xsplice(load('/home/claude/sep/s04.voice.wav'), [(0, 6.45), (10.40, 25.0), (31.85, 57.3)])
+bpm = 72; bar = 60 / bpm * 4
+M = Part('m', D, -3).prog(0, 0).prog(1, 48).prog(2, 52).prog(3, 42).prog(4, 89).prog(5, 47).prog(6, 49).prog(7, 10)
+# 0–6.45: low drone under the weight, sparse music-box notes after "remind you", storm strings
+for nn in (midi('A1'), midi('E2')): M.note(0.0, 3, nn, 92, 6.4)
+for i, (t, n) in enumerate([(2.35, 'E5'), (2.85, 'C5'), (3.35, 'A4'), (4.1, 'E5'), (4.6, 'D5'), (5.1, 'C5'), (5.6, 'B4')]): M.note(t, 7, midi(n), 70, 0.8)
+pad(M, 6, 3.6, 6.45, bpm, ['Am', 'E'], 52, beats=2, oct_=0, swell=(30, 80))
+# 6.45–18.9: sad piano, strings join, tension rises as the blocks land
+piano_arp(M, 0, 6.45, 16.65, bpm, ['Am', 'F', 'C', 'G'], vel=52)
+pad(M, 6, 10.95, 16.65, bpm, ['Am', 'F', 'Dm', 'E'], 58, beats=4, oct_=1, swell=(40, 85))
+for k, t in enumerate(np.arange(16.65, 18.93, 0.125)): M.note(t, 6, midi('E3') + (k // 6) % 2, 60 + k * 2, 0.12)
+for k, t in enumerate(np.arange(17.4, 18.93, 0.06)): M.note(t, 5, midi('A2'), 40 + k * 3, 0.08)
+# 19.75–23.7: warmth on "here you are", the road lights up
+pad(M, 4, 19.75, 23.7, bpm, ['F', 'C'], 70, beats=4, oct_=0, swell=(40, 90))
+piano_chords(M, 0, 19.75, 23.7, bpm, ['F', 'C'], vel=50, beats=4)
+for i in range(5): M.note(22.6 + i * 0.12, 7, midi('C5') + [0, 4, 7, 12, 16][i], 80, 1.0)
+# 23.7–30.0: okay to rest — lighter piano, friends arrive
+M.note(23.7, 3, midi('F2'), 60, 2.0)
+piano_arp(M, 0, 25.75, 30.0, bpm, ['C', 'G', 'Am', 'F'], vel=50)
+pad(M, 4, 25.75, 30.0, bpm, ['C', 'G', 'Am', 'F'], 58, beats=4, oct_=0)
+for i in range(4): M.note(28.04 + i * 0.1, 7, midi('G5') + [0, 2, 4, 7][i], 75, 0.6)
+# 30.0–33.7: the hush before the message
+pad(M, 4, 30.0, 33.65, bpm, ['F', 'G'], 55, beats=4, oct_=0, swell=(35, 95))
+# 33.72: "I'm proud of you." — full swell; rope climb + build; "human" crash; sunrise
+for nn in chord_notes('C', 1) + [midi('C3'), midi('G5')]: M.note(33.72, 2, nn, 100, 2.2); M.note(33.72, 6, nn, 105, 2.4)
+for nn in chord_notes('C', 0): M.note(33.72, 0, nn, 95, 1.6)
+bpm2 = 76
+piano_arp(M, 0, 35.1, 42.72, bpm2, ['Am', 'F', 'C', 'G'], vel=60)
+pad(M, 6, 35.1, 42.72, bpm2, ['Am', 'F', 'C', 'G'], 66, beats=4, oct_=1, swell=(50, 105))
+for t, n in [(35.1, 'A1'), (38.26, 'F1'), (41.4, 'C2')]: M.note(t, 3, midi(n), 90, 3.0)
+for nn in chord_notes('C', 1) + [midi('E5'), midi('C3')]: M.note(42.72, 2, nn, 112, 1.0); M.note(42.72, 6, nn, 110, 1.0)
+for nn in chord_notes('C', 1) + [midi('C3'), midi('E5'), midi('G5')]: M.note(43.7, 6, nn, 95, 3.4); M.note(43.7, 2, nn, 90, 3.4)
+for nn in chord_notes('C', 0) + [midi('C6')]: M.note(44.56, 0, nn, 88, 2.6)
+M.note(44.56, 3, midi('C2'), 95, 2.6)
+Dr = Part('dr', D, -2).prog(9, 48, 128).prog(8, 116)
+drums(Dr, 9, 36.6, 41.0, bpm2, 'half', 64)
+for k, t in enumerate(np.arange(41.0, 42.7, 60 / bpm2 / 4)): Dr.note(t, 8, midi('C3'), 60 + k * 4, 0.2)
+for t in (33.72, 42.72): Dr.note(t, 9, GM['crash'], 105, 1.5)
+Dr.note(18.93, 8, midi('C2'), 120, 0.6)
+music = reverb(M.render(), 0.32, 2.8, 0.6) + Dr.render()
+fx = FX(D)
+fx.impact(0.0, 0.7, 42, 1.0, 0.5)
+for k, ts in enumerate(np.arange(0.15, 2.3, 0.66)): fx.thud(ts, 0.45)
+fx.ding(2.0, 1318.5, 0.28, 0.6); fx.ding(2.08, 1760, 0.22, 0.7); fx.pop(2.0, 700, 0.3)
+fx.whoosh(3.6, 0.35, 0.3, 500, 6000)
+fx.scrape(3.6, 2.85, 0.05)
+for ts, g in ((4.5, 0.6), (5.6, 1.0)): fx.impact(ts, g, 38, 1.6, 0.4); fx.scrape(ts, 0.4, 0.12)
+fx.whoosh(6.45, 0.3, 0.45, 600, 9000)
+fx.whoosh(7.25, 0.35, 0.3, 4000, 400, False); fx.impact(7.6, 0.8, 55, 0.5, 0.4)
+for i in range(4): fx.tick(7.62 + i * 0.07, 0.12, 2400)
+for i in range(26): fx.tick(10.95 + i * 0.11, 0.08, 4200 + 300 * (i % 3))
+fx.whoosh(10.95, 0.3, 0.25, 500, 7000)
+for i in range(6): fx.tick(13.9 + i * 0.5, 0.14, 2600)
+fx.whoosh(15.25, 0.6, 0.18, 2000, 6000); fx.glitch(15.3, 0.2, 0.12)
+for i, b in enumerate([16.85, 17.33, 17.57, 17.89, 18.29, 18.61]): fx.thud(b + 0.22, 0.5 + 0.08 * i)
+fx.impact(18.93, 1.1, 40, 1.6, 0.6); fx.subdrop(18.93, 0.8)
+fx.heartbeat(19.15, 0.6)
+fx.whoosh(20.4, 0.25, 0.3, 4000, 600, False); fx.ding(20.61, 1046.5, 0.25, 1.0); fx.ding(20.67, 1568, 0.18, 1.0)
+fx.whoosh(21.05, 0.3, 0.45, 600, 9000)
+fx.thud(25.9, 0.55); fx.whoosh(25.78, 0.25, 0.1, 2500, 500, False)
+for ts in (28.04, 28.14, 28.24): fx.pop(ts, 900, 0.2)
+for i in range(18): fx.tick(30.76 + i * 0.16, 0.05, 1600)
+fx.riser(33.65, 1.2, 0.28, 300, 2000)
+fx.whoosh(33.6, 0.25, 0.35, 800, 8000); fx.chime(33.68, gain=0.22); fx.impact(33.72, 0.55, 48, 1.4, 0.5)
+fx.pop(34.6, 1100, 0.22)
+fx.whoosh(35.1, 0.35, 0.3, 500, 7000); fx.scrape(35.8, 0.6, 0.2); fx.thud(36.4, 0.4)
+for ts in (40.88, 41.76): fx.pop(ts, 600, 0.3)
+for ts in (41.28, 42.08): fx.swish(ts, 0.35); fx.whoosh(ts + 0.4, 0.5, 0.18, 2500, 300, False)
+fx.riser(42.72, 1.5, 0.3); fx.impact(42.72, 1.0, 44, 1.4, 0.8)
+fx.whoosh(43.7, 0.4, 0.3, 400, 6000)
+fx.chime(44.56, (523.25, 659.25, 783.99, 1046.5), gain=0.24, gap=0.08); fx.impact(44.56, 0.45, 50, 1.6, 0.4)
+master(voice, music, fx.a, D, 'sound73.wav', music_db=-12, fx_db=-7)
+print('ok')

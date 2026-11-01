@@ -1,0 +1,82 @@
+// 74. Lazy vs Winners (v3) — open tight on the lazy guy's smug face, whip out to the split screen; two lazy reps and a flop
+// into a trophy dream; "But winners" whips the camera to the winner, the beat drops, the rep counter explodes; push into his
+// worried face on "still worry"; scoreboard reveal 2 vs 217 → "Which one are you?"
+initCanvas('c');
+const DUR = 11.2;
+CAP.end = 8.95; CAP.y = 430;
+const F = 1330, LX = 50, RX = 575, K = 1.85, T_SWAP = 4.48, T_POSS = 5.92, T_WORRY = 7.04, T_END = 8.95;
+ATMO = { tint: [255, 190, 110], tintA: 0.06, shafts: 0.06, bokeh: 0.7 };
+CAMK = [[0, 470, 1110, 2.35, 0.03], [0.95, 480, 1115, 2.2, -0.01], [1.3, 540, 1060, 1.0, 0], [4.42, 540, 1060, 1.0, 0], [4.62, 820, 1090, 1.6, 0.02], [6.5, 830, 1095, 1.62, 0],
+        [6.95, 985, 1130, 2.35, -0.02], [8.7, 990, 1130, 2.45, 0], [9.05, 540, 1060, 1.0, 0], [11.2, 540, 1060, 1.04, 0]];
+SHAKES = [[0, 14, 0.18], [T_SWAP + 0.1, 18, 0.2], [T_POSS, 20, 0.22], [T_END + 0.3, 22, 0.25]];
+PUNCHES = [[T_SWAP + 0.1, 0.06, 0.12], [T_POSS, 0.08, 0.12], [T_END + 0.3, 0.08, 0.15]];
+function pushJ(x0, th) {
+  const d = [Math.cos(th), -Math.sin(th)], P = (s) => [x0 + d[0] * s, F - L.w / 2 + d[1] * s];
+  const leg = L.thigh + L.shin, aF = P(0), kF = P(L.thigh * 0.98), pel = P(leg), neck = P(leg + L.torso), sh = P(leg + L.torso - 8 * L.torso / 94);
+  const head = [neck[0] + (L.neck + L.head) * Math.cos(th + 0.25), neck[1] - (L.neck + L.head) * Math.sin(th + 0.25)];
+  const hand = [sh[0] + 6, F - L.w / 2], l1 = L.upper, l2 = L.fore, dx = hand[0] - sh[0], dy = hand[1] - sh[1], dist = Math.min(Math.hypot(dx, dy), (l1 + l2) * 0.999);
+  const a = Math.atan2(dy, dx), c1 = Math.acos(clamp((l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist), -1, 1));
+  const el = [sh[0] + l1 * Math.cos(a + c1), sh[1] + l1 * Math.sin(a + c1)];
+  return { pel, neck, sh, head, kN: kF, aN: aF, kF: [kF[0] - 3, kF[1] + 1], aF: [aF[0] - 4, aF[1]], eN: el, wN: hand, eF: [el[0] - 4, el[1]], wF: [hand[0] - 6, hand[1]], dy: 0 };
+}
+const lazyReps = [1.4, 2.0];
+const repTimes = (() => { const r = []; let tt = 0.15, rate; while (tt < DUR) { r.push(tt); rate = tt < T_SWAP ? 1.6 : Math.min(3.4, 1.6 + (tt - T_SWAP) * 1.0); tt += 1 / rate; } return r; })();
+function winnerTh(t) { let i = -1; for (let k = 0; k < repTimes.length; k++) if (repTimes[k] <= t) i = k; if (i < 0) return 0.42; const a = repTimes[i], b = repTimes[i + 1] || a + 0.4, u = (t - a) / (b - a); return lerp(0.42, 0.1, Math.sin(Math.PI * u)); }
+const winnerCount = (t) => Math.round(repTimes.filter((r) => r <= t).length * (t > T_SWAP ? 1 + (t - T_SWAP) * 2.3 : 1));
+const FINAL = winnerCount(T_END);
+function trophy(x, y, k, col = GOLDL) { if (k <= 0) return; ctx.save(); ctx.translate(x, y); ctx.scale(k, k); ctx.fillStyle = col; ctx.shadowColor = 'rgba(255,180,60,0.8)'; ctx.shadowBlur = 20; ctx.beginPath(); ctx.moveTo(-34, -40); ctx.lineTo(34, -40); ctx.lineTo(26, 6); ctx.quadraticCurveTo(0, 26, -26, 6); ctx.closePath(); ctx.fill(); ctx.fillRect(-7, 16, 14, 18); ctx.fillRect(-24, 32, 48, 10); ctx.lineWidth = 6; ctx.strokeStyle = col; ctx.beginPath(); ctx.arc(-34, -22, 14, Math.PI / 2, Math.PI * 1.5); ctx.arc(34, -22, 14, -Math.PI / 2, Math.PI / 2); ctx.stroke(); ctx.restore(); }
+function half(x0, w, lit, title, col) {
+  ctx.save(); ctx.globalAlpha *= lit; ctx.fillStyle = col === GOLDL ? 'rgba(255,201,94,0.06)' : 'rgba(255,255,255,0.03)'; ctx.fillRect(x0, 640, w, 840); ctx.restore();
+  txt(title, x0 + w / 2, 735, 58, col, 700, 'center', col === GOLDL ? 'rgba(255,170,50,0.6)' : null, 8);
+}
+function lazyExpr(t) { if (t < 1.35) return 'smug'; if (t < 2.4) return 'tired'; if (t < 2.85) return 'smug'; return exprMix('smug', 'sleep', smooth(3.8, 4.2, t)); }
+function winExpr(t) { if (t < T_WORRY) return t < T_SWAP ? 'determined' : 'strain'; if (t < 8.6) return 'worried'; return 'determined'; }
+function scene(t, c) {
+  const LA = 1 - smooth(1.2, 1.5, c.z);
+  const sw = smooth(T_SWAP - 0.1, T_SWAP + 0.15, t), fin = smooth(T_END, T_END + 0.3, t);
+  const litL = lerp(1, 0.4, sw), litR = lerp(0.5, 1, sw);
+  ctx.save(); ctx.globalAlpha *= (1 - 0.7 * fin) * LA; half(0, 540, litL, 'LAZY', 'rgba(240,238,232,0.85)'); half(540, 540, litR, 'WINNER', GOLDL); ctx.restore();
+  ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(540, 660); ctx.lineTo(540, 1470); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(40, F, 460, 3); ctx.fillRect(580, F, 460, 3); ctx.restore();
+  setFigureScale(K);
+  // ---- lazy
+  ctx.save(); ctx.globalAlpha *= litL;
+  const lazyCount = lazyReps.filter((r) => t >= r + 0.5).length, lie = smooth(2.4, 2.7, t);
+  if (t < 2.4) { let th = 0.42; for (const r of lazyReps) if (t >= r && t < r + 1.0) th = lerp(0.42, 0.2, Math.sin(Math.PI * (t - r) / 1.0)); hero(pushJ(LX, th), { expr: lazyExpr(t), t, col: GREYC, blur: 6, seed: 2 }); }
+  else {
+    const J = solve({ ...standPose(0), shN: 2.6, elN: 0.6, shF: 2.4, elF: 0.8, hipN: 0.3, kneeN: 0.8, hipF: 0.1, kneeF: 0.6, h: -0.2 }, 0, 0, 0, false, 0);
+    const px = LX + 270, py = F - 26; ctx.save(); ctx.translate(px, py); ctx.rotate(-Math.PI / 2 * lie); ctx.translate(-J.pel[0], -J.pel[1]); hero(J, { expr: lazyExpr(t), t, col: GREYC, blur: 6, seed: 2 }); ctx.restore();
+    const bk = popK(t, 2.9, 0.3); bubble(300, 1060, 110, bk, LX + 90, F - 70, 'rgba(22,21,26,0.95)', 'rgba(255,201,94,0.7)');
+    if (bk > 0) { trophy(300, 1056, bk * 1.15); txt('#1', 300, 1130, 26 * bk, '#ffd98a', 700); }
+    if (t >= 3.9) { ctx.save(); ctx.globalAlpha *= 0.7; zzz(LX + 60, F - 120, t); ctx.restore(); }
+  }
+  ctx.save(); ctx.globalAlpha *= (1 - fin) * LA; counter(270, 880, 'REPS', lazyCount, 'rgba(240,238,232,0.85)', 260, 170); ctx.restore();
+  ctx.restore();
+  // ---- winner
+  ctx.save(); ctx.globalAlpha *= litR;
+  const th = winnerTh(t), J = pushJ(RX, th);
+  hero(J, { expr: winExpr(t), t, speed: 0.15, blur: 14 + 16 * sw, seed: 5 });
+  if (t > T_SWAP) sweat(J.head[0] + 10, J.head[1] - 50, t, 3);
+  const n = winnerCount(Math.min(t, T_END)); ctx.save(); ctx.globalAlpha *= (1 - fin) * LA; const pk = n !== winnerCount(Math.max(0, Math.min(t, T_END) - 1 / 60)) ? 1.12 : 1; ctx.translate(810, 880); ctx.scale(pk, pk); ctx.translate(-810, -880); counter(810, 880, 'REPS', n, GOLDL, 260, 170); ctx.restore();
+  const wk = popK(t, T_WORRY, 0.25) * (1 - smooth(8.7, 8.95, t));
+  if (wk > 0) { bubble(870, 1000, 80, wk, J.head[0] - 10, J.head[1] - 40, 'rgba(22,21,26,0.95)', 'rgba(255,255,255,0.55)'); txt('enough?', 870, 1000, 30 * wk, '#f4f2ee', 700); }
+  ctx.restore();
+  // ---- final scoreboard
+  if (fin > 0) {
+    ctx.save(); ctx.globalAlpha *= fin; ctx.fillStyle = 'rgba(8,8,10,0.78)'; ctx.fillRect(-200, 620, 1480, 900); ctx.restore();
+    const kl = popK(t, T_END + 0.05, 0.3), kr = popK(t, T_END + 0.3, 0.3);
+    if (kl > 0) { ctx.save(); ctx.translate(270, 1030); ctx.scale(kl, kl); txt('LAZY', 0, -130, 36, 'rgba(240,238,232,0.7)', 700, 'center', null, 8); txt(String(lazyCount), 0, 10, 210, 'rgba(240,238,232,0.8)', 700); txt('REPS', 0, 140, 30, 'rgba(240,238,232,0.6)', 700, 'center', null, 6); ctx.restore(); }
+    if (kr > 0) { ctx.save(); ctx.translate(810, 1030); ctx.scale(kr, kr); txt('WINNER', 0, -130, 36, '#ffd98a', 700, 'center', null, 8); txt(String(FINAL), 0, 10, 210, GOLDL, 700, 'center', 'rgba(255,170,50,0.8)'); txt('REPS', 0, 140, 30, '#ffd98a', 700, 'center', null, 6); ctx.restore(); }
+    txt('vs', 540, 1040, 44, 'rgba(240,238,232,0.5)', 700);
+  }
+}
+function screen(t) {
+  whipLines(t, 1.15, 0.18, -1); whipLines(t, T_SWAP + 0.05, 0.18, 1); whipLines(t, 9.0, 0.18, -1);
+  impactLines(t, T_SWAP + 0.1, 540, 1000, 0.3); impactLines(t, T_POSS, 540, 1000, 0.3); impactLines(t, T_END + 0.3, 540, 1030, 0.35);
+  flash(t, T_SWAP + 0.1, 0.15, 0.12); flash(t, T_END + 0.3, 0.2, 0.15);
+  if (t >= T_END + 0.3) burst(810, 1030, t, T_END + 0.3, 70, ['#ffc95e', '#fff', '#f0ae36'], 1300, 1.3, 74);
+  if (t >= T_WORRY && t < 8.7) { const hb = Math.max(0, Math.sin((t - T_WORRY) * Math.PI * 2 * 1.1)) ** 8; ctx.save(); ctx.fillStyle = `rgba(120,0,0,${(0.12 * hb).toFixed(3)})`; ctx.fillRect(0, 0, 1080, 1920); ctx.restore(); }
+}
+window.renderFrame = (t) => frame3(t, { scenes: scene, screen, PH, hook: { lines: [[['Guess the ', 0], ['final score', 1]]], tIn: 0, tOut: 2.6 },
+  after: (t) => { if (t >= T_END) endText(t, T_END + 0.6, [['Which one', '#fff'], ['are you?', GOLDL]], 84); } });
+window.__allSteps = { swap: T_SWAP, end: T_END, final: FINAL };
+window.sceneReady = FONTS_READY();

@@ -1,0 +1,165 @@
+// 78. Turtle Theory — a glowing gold turtle swims through every line: fish rush past, a shark sends them panicking,
+// the leaders pull ahead, storms come and go, and it still reaches the shore. Then sprint vs motion, slow progress, and
+// a pressure gauge that bursts while the turtle keeps going.
+initCanvas('c');
+const DUR = 35.4;
+CAP.end = 34.0;
+const SC = [[0, 2.6], [2.6, 4.45], [4.45, 6.3], [6.3, 8.8], [8.8, 12.2], [12.2, 15.6], [15.6, 19.4], [19.4, 23.8], [23.8, 28.7], [28.7, 31.4], [31.4, 99]];
+const TY = 1080;   // turtle cruising height
+function water(t, a = 1) {
+  ctx.save(); ctx.globalAlpha *= a; const g = ctx.createLinearGradient(0, 600, 0, 1560); g.addColorStop(0, 'rgba(40,110,160,0)'); g.addColorStop(0.12, 'rgba(40,110,160,0.30)'); g.addColorStop(0.85, 'rgba(10,30,60,0.12)'); g.addColorStop(1, 'rgba(10,30,60,0)'); ctx.fillStyle = g; ctx.fillRect(0, 600, 1080, 960);
+  for (let i = 0; i < 5; i++) { const x = 120 + i * 220 + 40 * Math.sin(t * 0.3 + i); const gr = ctx.createLinearGradient(0, 640, 0, 1400); gr.addColorStop(0, 'rgba(200,230,255,0)'); gr.addColorStop(0.15, 'rgba(200,230,255,0.10)'); gr.addColorStop(1, 'rgba(200,230,255,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(x, 640); ctx.lineTo(x + 70, 640); ctx.lineTo(x + 200, 1400); ctx.lineTo(x + 60, 1400); ctx.fill(); }
+  for (let i = 0; i < 14; i++) { const u = ((t * (0.12 + (i % 4) * 0.03) + i * 0.137) % 1), x = (i * 211) % 1080 + 10 * Math.sin(t * 2 + i); ctx.strokeStyle = 'rgba(200,230,255,0.35)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, 1480 - u * 840, 4 + (i % 3) * 3, 0, TAU); ctx.stroke(); }
+  ctx.restore();
+}
+function seabed(t, d = 0) { ctx.save(); ctx.fillStyle = 'rgba(60,52,40,0.9)'; ctx.beginPath(); ctx.moveTo(0, 1500); for (let x = 0; x <= 1080; x += 40) ctx.lineTo(x, 1420 + 18 * Math.sin((x + d) / 90)); ctx.lineTo(1080, 1500); ctx.fill();
+  ctx.strokeStyle = 'rgba(95,154,99,0.8)'; ctx.lineWidth = 6; ctx.lineCap = 'round'; for (let i = 0; i < 9; i++) { const x = ((i * 157 - d) % 1200 + 1200) % 1200 - 60; ctx.beginPath(); ctx.moveTo(x, 1440); ctx.quadraticCurveTo(x + 20 * Math.sin(t * 1.5 + i), 1380, x + 8 * Math.sin(t + i), 1330 - (i % 3) * 30); ctx.stroke(); } ctx.restore(); }
+// side-view turtle facing right; ph = stroke phase
+let TFACE = { eye: 1, lid: 0.35, smile: 0.6, t: 0 };
+function turtle(x, y, s, ph, glow = 1, col = GOLDL) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const fl = Math.sin(ph), fl2 = Math.sin(ph + 0.6);
+  ctx.shadowColor = 'rgba(255,180,60,0.7)'; ctx.shadowBlur = 24 * glow;
+  // far flippers
+  ctx.fillStyle = '#a8711c';
+  ctx.save(); ctx.translate(40, 12); ctx.rotate(-(0.5 + 0.55 * fl2)); ctx.beginPath(); ctx.ellipse(-50, 0, 62, 16, 0, 0, TAU); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.translate(-70, 18); ctx.rotate(-(0.4 + 0.3 * fl2)); ctx.beginPath(); ctx.ellipse(-26, 0, 30, 11, 0, 0, TAU); ctx.fill(); ctx.restore();
+  // head + neck
+  ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(112, -2 + 3 * Math.sin(ph * 0.5), 34, 25, 0.1, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(82, 4, 26, 18, 0, 0, TAU); ctx.fill();
+  ctx.shadowBlur = 0; { const op = TFACE.eye * blinkAt(TFACE.t, 1); ctx.fillStyle = '#2a1a06'; ctx.strokeStyle = '#2a1a06'; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+    if (op < 0.15) { ctx.beginPath(); ctx.arc(124, -10, 7, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke(); } else { ctx.beginPath(); ctx.ellipse(124, -8, 6, 8 * op, 0, 0, TAU); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(126, -11, 2, 0, TAU); ctx.fill();
+      if (TFACE.lid > 0) { ctx.fillStyle = col; ctx.fillRect(116, -18, 16, 10 * TFACE.lid); } }
+    ctx.strokeStyle = '#2a1a06'; ctx.beginPath(); ctx.moveTo(120, 8); ctx.quadraticCurveTo(132, 8 + 6 * TFACE.smile, 143, 2); ctx.stroke(); }
+  // shell
+  ctx.shadowBlur = 24 * glow; ctx.fillStyle = '#f0ae36'; ctx.beginPath(); ctx.ellipse(0, 0, 100, 58, 0, Math.PI, 0); ctx.quadraticCurveTo(100, 22, 0, 24); ctx.quadraticCurveTo(-100, 22, -100, 0); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(120,70,10,0.6)'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(-30, -52); ctx.lineTo(-40, -20); ctx.lineTo(-10, 4); ctx.lineTo(30, 4); ctx.lineTo(48, -22); ctx.lineTo(34, -52); ctx.moveTo(-40, -20); ctx.lineTo(-86, -14); ctx.moveTo(48, -22); ctx.lineTo(88, -16); ctx.moveTo(-10, 4); ctx.lineTo(-24, 22); ctx.moveTo(30, 4); ctx.lineTo(40, 22); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,240,200,0.25)'; ctx.beginPath(); ctx.ellipse(-20, -38, 40, 12, -0.15, 0, TAU); ctx.fill();
+  // near flippers
+  ctx.shadowBlur = 16 * glow; ctx.fillStyle = col;
+  ctx.save(); ctx.translate(46, 18); ctx.rotate(-(0.45 + 0.6 * fl)); ctx.beginPath(); ctx.ellipse(-56, 0, 70, 18, 0, 0, TAU); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.translate(-74, 20); ctx.rotate(-(0.35 + 0.35 * fl)); ctx.beginPath(); ctx.ellipse(-28, 0, 34, 12, 0, 0, TAU); ctx.fill(); ctx.restore();
+  ctx.restore();
+}
+function fish(x, y, s, col = 'rgba(220,228,240,0.85)', flip = false, t = 0) { ctx.save(); ctx.translate(x, y); ctx.scale(flip ? -s : s, s); ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(0, 0, 30, 12, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.moveTo(-24, 0); ctx.lineTo(-46, -14 + 3 * Math.sin(t * 30)); ctx.lineTo(-46, 14 + 3 * Math.sin(t * 30)); ctx.fill(); ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(16, -3, 3, 0, TAU); ctx.fill(); ctx.restore(); }
+const SP = 0.9;   // stroke phase speed (rad/s × 2π)
+const ph = (t) => t * SP * TAU;
+// ---------------------------------------------------------------- scenes
+function shark(x, y, s, jaw, flip = false) { ctx.save(); ctx.translate(x, y); ctx.scale(flip ? -s : s, s); ctx.fillStyle = '#1b2533'; ctx.strokeStyle = 'rgba(160,190,220,0.25)'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(-260, -10); ctx.quadraticCurveTo(-60, -110, 170, -40); ctx.lineTo(230, -10 - 30 * jaw); ctx.lineTo(120, 0); ctx.lineTo(230, 10 + 40 * jaw); ctx.quadraticCurveTo(-20, 90, -260, 10); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-40, -70); ctx.lineTo(10, -170); ctx.lineTo(60, -62); ctx.fill(); ctx.beginPath(); ctx.moveTo(-250, 0); ctx.lineTo(-360, -90); ctx.lineTo(-330, 0); ctx.lineTo(-360, 90); ctx.fill();
+  ctx.fillStyle = '#e9eef5'; for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo(130 + i * 16, -8 - 14 * jaw); ctx.lineTo(138 + i * 16, 8 - 14 * jaw); ctx.lineTo(146 + i * 16, -8 - 14 * jaw); ctx.fill(); }
+  ctx.fillStyle = '#e9eef5'; ctx.beginPath(); ctx.arc(90, -40, 9, 0, TAU); ctx.fill(); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(92, -40, 5, 0, TAU); ctx.fill(); ctx.restore(); }
+function s1(t) { water(t); seabed(t, t * 40);
+  // shock open: a shark lunges at the camera… the turtle just blinks
+  if (t < 1.2) { const u = clamp(t / 0.55), back = smooth(0.6, 1.15, t); shark(lerp(1060, 760, easeOut(u)) + 700 * back, lerp(900, 980, u) - 200 * back, lerp(1.9, 1.5, u) * (1 - 0.4 * back), 0.8 * (1 - back), true); }
+  TFACE = { eye: t < 0.5 ? 1 : 0.9, lid: t < 0.5 ? 0.35 : 0.5, smile: t < 0.9 ? 0.2 : 0.7, t }; turtle(560, TY, 1.6, ph(t)); TFACE = { eye: 1, lid: 0.35, smile: 0.6, t };
+  for (let i = 0; i < 6; i++) { const x = ((t * (900 + i * 120) + i * 260) % 1500) - 200; fish(x, 860 + i * 70 + 20 * Math.sin(i), 0.9, 'rgba(220,228,240,0.8)', false, t); ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x - 60, 860 + i * 70 + 20 * Math.sin(i)); ctx.lineTo(x - 200, 860 + i * 70 + 20 * Math.sin(i)); ctx.stroke(); ctx.restore(); }
+  if (t >= 1.36) { const k = popK(t, 1.36, 0.25); ctx.save(); ctx.translate(740, 880); ctx.scale(k, k); txt('?', 0, 0, 120, GOLDL, 700, 'center', 'rgba(255,170,50,0.8)'); ctx.restore(); }
+}
+function s2(t) { water(t); seabed(t, t * 40); speedLines(t, 760, 1380, 14, 1, 0.18, 200);
+  for (let i = 0; i < 10; i++) { const x = ((t * (1300 + i * 90) + i * 170) % 1500) - 200; fish(x, 780 + (i * 61) % 560, 0.8 + (i % 3) * 0.15, 'rgba(220,228,240,0.8)', false, t); }
+  turtle(470, TY, 1.6, ph(t)); txt('steady', 470, TY + 150, 30, '#ffd98a', 700, 'center', null, 6);
+}
+function s3(t) { water(t); seabed(t, t * 40);
+  const sx = lerp(1300, -400, (t - 4.45) / 1.85); ctx.save(); ctx.fillStyle = 'rgba(10,20,35,0.85)'; ctx.translate(sx, 820); ctx.scale(-1, 1); ctx.beginPath(); ctx.ellipse(0, 0, 230, 60, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.moveTo(-200, 0); ctx.lineTo(-310, -70); ctx.lineTo(-290, 0); ctx.lineTo(-310, 70); ctx.fill(); ctx.beginPath(); ctx.moveTo(-20, -50); ctx.lineTo(40, -130); ctx.lineTo(70, -50); ctx.fill(); ctx.restore();
+  for (let i = 0; i < 10; i++) { const a = i / 10 * TAU, u = clamp((t - 5.0) / 1.0), x = 760 + Math.cos(a) * (60 + 500 * u) + 20 * Math.sin(t * 20 + i), y = 1180 + Math.sin(a) * (40 + 260 * u); fish(x, y, 0.7, 'rgba(220,228,240,0.8)', Math.cos(a) < 0, t); if (u > 0 && u < 0.7) txt('!', x, y - 40, 34, RED, 700); }
+  turtle(380, TY, 1.6, ph(t)); glowDot(380, TY, 220, 0.25);
+}
+function s4(t) { water(t); seabed(t, t * 40);
+  [['1st', 860, 880], ['2nd', 800, 1000], ['3rd', 900, 1230]].forEach(([lab, x0, y], i) => { const x = x0 + (t - 6.3) * 60; fish(x, y, 1.2, 'rgba(220,228,240,0.85)', false, t); const k = popK(t, 6.6 + i * 0.12, 0.2); if (k > 0) { ctx.save(); ctx.translate(x, y - 56); ctx.scale(k, k); panel(-40, -22, 80, 44, 22, null, i === 0 ? GOLDL : '#f4f2ee', 0); txt(lab, 0, 1, 24, INK, 700); ctx.restore(); } });
+  turtle(300, TY + 20, 1.5, ph(t)); const k = popK(t, 7.76, 0.25); if (k > 0) { ctx.save(); ctx.translate(300, TY + 150); ctx.scale(k, k); panel(-90, -24, 180, 48, 24, 'rgba(255,255,255,0.25)'); txt('LAST', 0, 2, 26, 'rgba(240,238,232,0.8)', 700, 'center', null, 6); ctx.restore(); }
+  if (t > 8.0) { ctx.save(); ctx.globalAlpha *= smooth(8.0, 8.3, t); txt("doesn't care", 300, 880, 30, '#ffd98a', 700, 'center', null, 4); ctx.restore(); }
+}
+function s5(t) { const d = (t - 8.8) * 120; water(t); seabed(t, d);
+  const p = ph(t), n = Math.floor((t - 8.8) * SP) + 1; turtle(540, TY, 1.75, p);
+  counter(540, 800, 'STROKE', n, GOLDL, 260, 150);
+  const strokeT = 8.8 + (n - 1) / SP; if (t - strokeT < 0.3) ringFlash(540, 800, t, strokeT, '255,201,94', 80, 200, 0.3, 5);
+}
+function s6(t) { const calm = smooth(13.9, 14.4, t); water(t); seabed(t, t * 60);
+  // the storm on the surface
+  ctx.save(); ctx.globalAlpha *= 1 - calm; ctx.fillStyle = 'rgba(30,34,48,0.9)'; ctx.beginPath(); ctx.moveTo(0, 640); for (let x = 0; x <= 1080; x += 20) ctx.lineTo(x, 720 + 40 * Math.sin(x / 60 + t * 6) + 20 * Math.sin(x / 23 - t * 9)); ctx.lineTo(1080, 640); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 3; for (let i = 0; i < 12; i++) { const y = 800 + i * 50, off = (t * 900 + i * 130) % 1300 - 100; ctx.beginPath(); ctx.moveTo(off, y); ctx.bezierCurveTo(off + 60, y - 30, off + 120, y + 30, off + 200, y); ctx.stroke(); } ctx.restore();
+  if (t > 12.64 && t < 12.9) flash(t, 12.64, 0.1, 0.15);
+  ctx.save(); ctx.globalAlpha *= calm; ctx.fillStyle = 'rgba(150,200,240,0.2)'; ctx.beginPath(); ctx.moveTo(0, 690); for (let x = 0; x <= 1080; x += 20) ctx.lineTo(x, 700 + 6 * Math.sin(x / 80 + t)); ctx.lineTo(1080, 640); ctx.lineTo(0, 640); ctx.fill(); ctx.restore();
+  const shake = (1 - calm) * 8; turtle(540 + shake * Math.sin(t * 13), TY + shake * Math.cos(t * 11), 1.65, ph(t));
+}
+function s7(t) {
+  const shore = smooth(16.9, 17.4, t);
+  if (shore < 1) { ctx.save(); ctx.globalAlpha *= 1 - shore; water(t); seabed(t, t * 60); turtle(540, TY, 1.6, ph(t));
+    panel(140, 760, 800, 90, 45, 'rgba(255,255,255,0.2)'); txt('OCEAN', 210, 805, 24, 'rgba(240,238,232,0.6)', 700, 'left', null, 4); txt('SHORE', 870, 805, 24, '#ffd98a', 700, 'right', null, 4);
+    const u = clamp((t - 15.6) / 1.5); bar(330, 795, 400, 20, u * 0.55, GOLDL); ctx.restore(); }
+  if (shore > 0) { ctx.save(); ctx.globalAlpha *= shore;
+    const sky = ctx.createLinearGradient(0, 640, 0, 1200); sky.addColorStop(0, 'rgba(255,150,80,0)'); sky.addColorStop(1, 'rgba(255,150,80,0.3)'); ctx.fillStyle = sky; ctx.fillRect(0, 640, 1080, 560);
+    glowDot(780, 1060, 300, 0.5); ctx.fillStyle = '#ffd27a'; ctx.beginPath(); ctx.arc(780, 1080, 90, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = 'rgba(40,90,130,0.6)'; ctx.fillRect(0, 1080, 1080, 120);
+    ctx.fillStyle = '#c9a66b'; ctx.beginPath(); ctx.moveTo(0, 1500); ctx.lineTo(0, 1280); ctx.quadraticCurveTo(500, 1180, 1080, 1210); ctx.lineTo(1080, 1500); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, 1282 + 6 * Math.sin(t * 3)); ctx.quadraticCurveTo(300, 1230, 520, 1222 + 6 * Math.sin(t * 3)); ctx.stroke();
+    const crawl = clamp((t - 17.3) / 1.6); turtle(lerp(220, 560, crawl), lerp(1270, 1190, crawl), 1.2, t * 4);
+    if (t >= 18.24) { burst(560, 1180, t, 18.24, 40, ['#ffc95e', '#fff'], 900, 1.0, 18); sparkle(600, 1100, 2, t, 1); }
+    ctx.restore(); }
+}
+function s8(t) { water(t); seabed(t, t * 30);
+  // speedometer
+  const gx = 540, gy = 930, k = popK(t, 19.6, 0.25), dead = smooth(20.64, 20.9, t);
+  if (k > 0) { ctx.save(); ctx.translate(gx, gy); ctx.scale(k, k); ctx.globalAlpha *= 1 - 0.6 * dead; ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 14; ctx.beginPath(); ctx.arc(0, 0, 150, Math.PI, 0); ctx.stroke();
+    for (let i = 0; i <= 10; i++) { const a = Math.PI + i / 10 * Math.PI; ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(130 * Math.cos(a), 130 * Math.sin(a)); ctx.lineTo(110 * Math.cos(a), 110 * Math.sin(a)); ctx.stroke(); }
+    const na = Math.PI + (0.06 + 0.02 * Math.sin(t * 9)) * Math.PI; ctx.strokeStyle = RED; ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(120 * Math.cos(na), 120 * Math.sin(na)); ctx.stroke(); txt('SPEED', 0, 40, 26, 'rgba(240,238,232,0.7)', 700, 'center', null, 6);
+    if (dead > 0) { ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(-60, -120); ctx.lineTo(-10, -60); ctx.lineTo(-40, -20); ctx.lineTo(20, 30); ctx.stroke(); }
+    ctx.restore(); }
+  // the path of patience: bricks laid under the turtle
+  const nb = Math.floor(clamp((t - 21.0) / 1.5) * 9);
+  for (let i = 0; i < nb; i++) { const kb = popK(t, 21.0 + i / 6, 0.15); ctx.save(); ctx.translate(120 + i * 105, 1300); ctx.scale(kb, kb); ctx.fillStyle = i === nb - 1 ? '#ffd98a' : GOLDL; ctx.shadowColor = 'rgba(255,180,60,0.7)'; ctx.shadowBlur = 14; ctx.fillRect(-48, -20, 96, 40); ctx.restore(); }
+  if (t >= 22.4) txt('PATIENCE', 540, 1370, 30, '#ffd98a', 700, 'center', 'rgba(255,170,50,0.6)', 10);
+  turtle(lerp(200, 560, clamp((t - 21.0) / 2.2)), 1190, 1.3, ph(t));
+}
+function s9(t) { water(t, 0.5); floorLine(1400, 0.25); groundMarks(makeMarks.c || (makeMarks.c = makeMarks()), 1400, (t - 23.8) * 120);
+  // the sprinter burns out
+  setFigureScale(1.3); const a = t - 23.8; let x, P;
+  if (a < 1.3) { x = lerp(100, 860, a / 1.3); P = runPose(a * 18, 1.1, 0.35); }
+  else if (a < 1.6) { x = 860; P = mix(runPose(1.3 * 18, 1.1, 0.35), stumblePose(), (a - 1.3) / 0.3); }
+  else { x = 860 - (a - 1.6) * 120; P = { ...kneelPose(0), t: 1.0 + 0.05 * Math.sin(t * 8), h: 0.7 }; }
+  const J = solve(P, x, 1400, 0); ctx.save(); ctx.globalAlpha *= 0.9; hero(J, { expr: a < 1.3 ? 'strain' : 'tired', t, col: WHITEC, blur: 6, seed: 3 }); ctx.restore(); if (a > 1.6) sweat(J.head[0], J.head[1] - 30, t, 3);
+  if (a < 1.3) speedLines(t, 1200, 1390, 6, 1, 0.2, 160);
+  // turtle keeps moving
+  turtle(lerp(150, 760, clamp((a - 1.0) / 3.8)), 1340, 1.05, t * 5);
+  if (t >= 27.1) { const k = popK(t, 27.1, 0.25), on = Math.floor(t * 2.5) % 2 === 0; ctx.save(); ctx.translate(540, 820); ctx.scale(k, k); panel(-170, -36, 340, 72, 36, 'rgba(255,201,94,0.6)'); ctx.fillStyle = on ? '#5fdc7a' : 'rgba(95,220,122,0.3)'; ctx.beginPath(); ctx.arc(-120, 0, 12, 0, TAU); ctx.fill(); txt('IN MOTION', 20, 2, 32, '#f4f2ee', 700, 'center', null, 4); ctx.restore(); }
+}
+function s10(t) { water(t, 0.6);
+  const u = clamp((t - 28.8) / 2.3), pct = Math.floor(1 + u * 36);
+  panel(120, 1040, 840, 70, 35, 'rgba(255,255,255,0.2)'); bar(140, 1058, 800, 34, pct / 100, GOLDL);
+  txt(`${pct}%`, 540, 930, 120, GOLDL, 700, 'center', 'rgba(255,170,50,0.6)');
+  turtle(140 + 800 * pct / 100, 990, 0.7, t * 6);
+  for (let i = 1; i <= 3; i++) { const ts = 28.9 + i * 0.6; if (t >= ts && t < ts + 0.6) txt('+1%', 140 + 800 * (1 + (ts - 28.8) / 2.3 * 36) / 100 + 30, 960 - 80 * (t - ts), 30, `rgba(255,217,138,${(1 - (t - ts) / 0.6).toFixed(3)})`, 700); }
+  if (t >= 30.52) { check(980, 1075, 50, GOLDL, popK(t, 30.52, 0.2)); txt('STILL PROGRESS', 540, 1200, 30, '#ffd98a', 700, 'center', null, 8); }
+}
+function s11(t) { water(t); seabed(t, t * 40);
+  // pressure gauge shaking to bursting
+  const gx = 760, gy = 900, boom = clamp((t - 32.76) / 0.6);
+  if (boom < 1) { const sh = boom > 0 ? 0 : 6 * clamp((t - 31.5) / 1.2) * Math.sin(t * 60); ctx.save(); ctx.translate(gx + sh, gy);
+    if (boom > 0) { ctx.globalAlpha *= 1 - boom; }
+    const pieces = boom > 0 ? 6 : 1;
+    for (let p = 0; p < pieces; p++) { ctx.save(); if (boom > 0) { const a = p / 6 * TAU; ctx.translate(Math.cos(a) * 400 * boom, Math.sin(a) * 300 * boom + 500 * boom * boom); ctx.rotate(boom * 4 * (p % 2 ? 1 : -1)); ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 140, a, a + TAU / 6); ctx.clip(); }
+      ctx.fillStyle = '#26252b'; ctx.strokeStyle = RED; ctx.lineWidth = 10; ctx.beginPath(); ctx.arc(0, 0, 130, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = RED; ctx.lineWidth = 14; ctx.beginPath(); ctx.arc(0, 0, 96, -Math.PI * 0.1, Math.PI * 0.25); ctx.stroke();
+      const na = -Math.PI * 1.15 + lerp(0.2, 1.33, clamp((t - 31.4) / 1.3)) * Math.PI + 0.06 * Math.sin(t * 50); ctx.strokeStyle = '#f4f2ee'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(90 * Math.cos(na), 90 * Math.sin(na)); ctx.stroke();
+      txt('PRESSURE', 0, 60, 22, '#ff8a7e', 700, 'center', null, 4); ctx.restore(); }
+    ctx.restore(); }
+  if (t >= 32.76) { burst(gx, gy, t, 32.76, 40, ['#ff6b5e', '#fff', '#9aa0ad'], 1100, 1.0, 32); flash(t, 32.76, 0.12, 0.15); }
+  const calm = smooth(33.3, 33.8, t);
+  glowDot(lerp(260, 560, clamp((t - 31.4) / 3)), TY + 40, 230 + 120 * calm, 0.3 + 0.3 * calm);
+  turtle(lerp(260, 560, clamp((t - 31.4) / 3)), TY + 40, 1.55, ph(t), 1 + calm);
+  if (t >= 31.72) txt('PEACE', lerp(260, 560, clamp((t - 31.4) / 3)), TY + 190, 30, '#ffd98a', 700, 'center', 'rgba(255,170,50,0.6)', 10);
+}
+const SCENES = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11].map((f) => (t) => { TFACE.t = t; f(t); });
+ATMO = { tint: [90, 170, 220], tintA: 0.08, shafts: 0.06, bokeh: 0.9 }; CAP.y = 430;
+CAMK = [[0, 700, 980, 1.25, 0.03], [0.6, 640, 1000, 1.15, 0], [1.3, 560, 1060, 1.12, 0], [2.6, 520, 1070, 1.15, 0], [4.45, 500, 1060, 1.05, 0], [5.3, 420, 1080, 1.45, 0], [6.3, 520, 1060, 1.05, 0],
+        [8.8, 540, 1080, 1.1, 0], [12.2, 540, 1060, 1.05, 0], [12.7, 540, 1080, 1.2, 0.02], [13.9, 540, 1080, 1.2, 0], [14.3, 540, 1060, 1.05, 0], [17.3, 540, 1100, 1.15, 0], [19.4, 420, 1150, 1.35, 0],
+        [19.5, 540, 1060, 1.0, 0], [23.8, 540, 1080, 1.05, 0], [28.7, 540, 1060, 1.0, 0], [31.4, 480, 1080, 1.15, 0], [33.4, 470, 1080, 1.35, 0], [35.4, 480, 1080, 1.3, 0]];
+SHAKES = [[0, 22, 0.3], [0.35, 12, 0.25], [12.64, 16, 0.3], [13.1, 10, 0.3], [32.76, 18, 0.25]];
+PUNCHES = [[0.4, 0.06, 0.12], [18.24, 0.05, 0.12], [32.76, 0.08, 0.12]];
+function screen(t) { for (const [a] of SC.slice(1)) whipLines(t, a, 0.14, 1); impactLines(t, 0.35, 700, 980, 0.3); impactLines(t, 32.76, 760, 900, 0.3); }
+window.renderFrame = (t) => frame3(t, { scenes: (t) => runScenes(t, SC, SCENES), screen, PH, hook: { lines: [[['If you feel ', 0], ['behind', 1]], [['watch this.', 0]]], tIn: 0, tOut: 2.5 },
+  after: (t) => { if (t >= 34.0) endText(t, 34.0, [['Slow is fine.', '#fff'], ['Stay in motion.', GOLDL]], 74); } });
+window.__allSteps = { scenes: SC };
+window.sceneReady = FONTS_READY();
