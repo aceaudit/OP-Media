@@ -1,0 +1,143 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script src="vo.js"></script>
+<script>
+const PH = [
+  [[0.0, 'Restart,!']],
+  [[1.28, 'reset,!']],
+  [[2.4, 'and'], [2.64, 'refocus!']],
+  [[3.68, 'as'], [4.0, 'many*'], [4.24, 'times'], [4.56, 'as'], [4.8, 'you'], [5.12, 'need.*']],
+  [[6.16, 'You'], [6.4, 'are'], [6.64, 'your'], [6.88, 'own'], [7.12, 'greatest*'], [7.6, 'project.*']],
+  [[9.2, 'But'], [9.44, 'just'], [9.76, 'always'], [10.08, 'remember,']],
+  [[11.52, "don't"], [12.0, 'give'], [12.24, 'up.!']],
+];
+
+// 81. Restart — a game. GAME OVER at frame 0 and RESTART gets pressed on the first word; reset, refocus, attempt after attempt
+// until the jump lands; a blueprint of "PROJECT: YOU"; then the GIVE UP button shatters and CONTINUE gets pressed.
+initCanvas('c');
+const DUR = 14.4;
+CAP.end = 12.95;
+const SC = [[0, 1.25], [1.25, 2.4], [2.4, 3.6], [3.6, 5.9], [5.9, 9.0], [9.0, 99]];
+const FLOOR = 1380;
+function button(x, y, w, h, label, style, k = 1, press = 0) {
+  if (k <= 0) return; ctx.save(); ctx.translate(x, y + 6 * press); ctx.scale(k, k);
+  const gold = style === 'gold', red = style === 'red';
+  ctx.fillStyle = gold ? '#b97f1d' : red ? '#7a2c26' : '#3a3940'; ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2 + 10, w, h, h / 2.6); ctx.fill();
+  ctx.fillStyle = gold ? GOLDL : red ? '#d9564b' : '#55545c'; if (gold) { ctx.shadowColor = 'rgba(255,180,60,0.8)'; ctx.shadowBlur = 30; }
+  ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2 + 10 * press, w, h - 10 * press + 0, h / 2.6); ctx.fill(); ctx.shadowBlur = 0;
+  txt(label, 0, 4 + 5 * press, h * 0.36, gold ? INK : '#fff', 700, 'center', null, 3); ctx.restore();
+}
+function cursor(x, y, k = 1) { ctx.save(); ctx.translate(x, y); ctx.scale(k, k); ctx.fillStyle = '#fff'; ctx.strokeStyle = '#111'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 46); ctx.lineTo(12, 35); ctx.lineTo(22, 56); ctx.lineTo(30, 52); ctx.lineTo(20, 32); ctx.lineTo(36, 32); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
+function platform(x0, x1, y) { ctx.save(); ctx.fillStyle = '#3d3c46'; ctx.fillRect(x0, y, x1 - x0, 26); ctx.fillStyle = 'rgba(255,201,94,0.7)'; ctx.fillRect(x0, y, x1 - x0, 5); ctx.restore(); }
+// ---------------------------------------------------------------- 1. GAME OVER → RESTART (pressed on the first word)
+function s1(t) {
+  platform(80, 1000, FLOOR);
+  setFigureScale(1.4);
+  const up = smooth(0.55, 0.95, t); const P = mix(pronePose(0), standPose(0), up); const J = solve(P, 470, FLOOR, 0);
+  ctx.save(); ctx.globalAlpha *= 0.4 + 0.6 * up; fig(J, 10 + 10 * up); ctx.restore();
+  const go = 1 - smooth(0.35, 0.6, t);
+  if (go > 0) { ctx.save(); ctx.globalAlpha *= go; const g = (Math.floor(t * 30) % 3) * 4; txt('GAME OVER', 540 + g, 770, 120, RED, 700, 'center', 'rgba(255,90,80,0.8)'); txt('GAME OVER', 540 - g, 770, 120, 'rgba(120,200,255,0.35)', 700); ctx.restore(); }
+  const press = t > 0.12 && t < 0.3 ? 1 : 0;
+  button(540, 920, 440, 120, '↻  RESTART', 'gold', 1, press);
+  cursor(lerp(760, 570, smooth(0, 0.12, t)), lerp(1040, 930, smooth(0, 0.12, t)));
+  if (t >= 0.2) { ringFlash(540, 920, t, 0.2, '255,201,94', 100, 520, 0.45, 10); burst(540, 920, t, 0.2, 36, ['#ffc95e', '#fff'], 900, 0.9, 81); }
+  if (t > 0.3 && t < 0.6) { ctx.save(); ctx.globalAlpha *= 0.5; ctx.fillStyle = '#fff'; for (let i = 0; i < 12; i++) ctx.fillRect(0, 650 + ((i * 97 + t * 3000) % 800), 1080, 3); ctx.restore(); }
+}
+// ---------------------------------------------------------------- 2. reset (energy refills, timer back to zero)
+function s2(t) {
+  platform(80, 1000, FLOOR); setFigureScale(1.4); fig(solve(tallPose(Math.sin(t * 2)), 300, FLOOR, 0), 20);
+  const u = easeOut(clamp((t - 1.3) / 0.6));
+  panel(520, 760, 470, 300, 30, 'rgba(255,255,255,0.2)');
+  txt('ENERGY', 560, 812, 24, 'rgba(240,238,232,0.7)', 700, 'left', null, 5); bar(560, 836, 390, 30, lerp(0.08, 1, u), u > 0.6 ? GOLDL : RED);
+  txt('TIME', 560, 912, 24, 'rgba(240,238,232,0.7)', 700, 'left', null, 5);
+  const secs = Math.round(lerp(5940, 0, u)); txt(`${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`, 755, 990, 84, u >= 1 ? GOLDL : '#f4f2ee', 700);
+  if (t >= 1.9) check(950, 990, 40, GOLDL, popK(t, 1.9, 0.2));
+}
+// ---------------------------------------------------------------- 3. refocus (camera reticle locks on)
+function s3(t) {
+  platform(80, 1000, FLOOR); setFigureScale(1.5);
+  const f = smooth(2.5, 2.9, t), J = solve(standPose(Math.sin(t * 2)), 540, FLOOR, 0);
+  if (f < 1) { ctx.save(); ctx.globalAlpha *= 0.25 * (1 - f); for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; ctx.save(); ctx.translate(Math.cos(a) * 18 * (1 - f), Math.sin(a) * 18 * (1 - f)); fig(J, 30); ctx.restore(); } ctx.restore(); }
+  ctx.save(); ctx.globalAlpha *= 0.35 + 0.65 * f; fig(J, 20); ctx.restore();
+  const r = lerp(330, 190, f), cx = 540, cy = 1180; ctx.save(); ctx.strokeStyle = f >= 1 ? GOLDL : '#fff'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { ctx.beginPath(); ctx.moveTo(cx + sx * r, cy + sy * (r - 60)); ctx.lineTo(cx + sx * r, cy + sy * r); ctx.lineTo(cx + sx * (r - 60), cy + sy * r); ctx.stroke(); }
+  ctx.restore();
+  if (t >= 2.9) { pill('FOCUS LOCKED', 540, 900, t, 2.9, { size: 32 }); }
+}
+// ---------------------------------------------------------------- 4. attempts until the jump lands
+const ATT = [[3.65, false], [4.05, false], [4.4, false], [4.7, false], [5.0, true]];
+function s4(t) {
+  let a = 0; for (let i = 0; i < ATT.length; i++) if (t >= ATT[i][0]) a = i;
+  const [t0, ok] = ATT[a], u = t - t0, dur = ok ? 0.75 : (a < ATT.length - 1 ? ATT[a + 1][0] - t0 : 0.4);
+  platform(60, 470, FLOOR); platform(640, 1020, FLOOR);
+  ctx.save(); ctx.fillStyle = 'rgba(255,107,94,0.12)'; ctx.fillRect(470, FLOOR, 170, 120); ctx.restore();
+  setFigureScale(1.25);
+  let x, y = FLOOR, P;
+  const run = 0.25, jump = 0.3;
+  if (u < run) { x = lerp(180, 420, u / run); P = runPose(t * 16, 1, 0.3); }
+  else if (u < run + jump) { const v = (u - run) / jump; x = lerp(420, ok ? 720 : 560, v); y = FLOOR - (ok ? 200 : 110) * Math.sin(Math.PI * v) + (ok ? 0 : (v > 0.5 ? 220 * (v - 0.5) * 2 : 0)); P = jumpPose(); }
+  else if (ok) { x = 720; P = cheerPose(Math.sin(t * 6)); }
+  else { const v = clamp((u - run - jump) / 0.15); x = 560; y = FLOOR + 110 + 300 * v; P = stumblePose(); }
+  ctx.save(); if (!ok && u > run + jump * 0.5) { ctx.beginPath(); ctx.rect(0, 0, 1080, FLOOR + 26); ctx.clip(); } fig(solve(P, x, y, 0), 20); ctx.restore();
+  if (!ok && u > run + jump) cross(560, FLOOR - 120, 50, RED, popK(t, t0 + run + jump, 0.15), 10);
+  const shown = ok && u >= run + jump ? 37 : Math.min(36, 1 + Math.floor(Math.pow(clamp((t - 3.65) / 1.6), 1.5) * 35));
+  counter(540, 820, 'ATTEMPT', `#${shown}`, shown === 37 ? GOLDL : '#f4f2ee', 300, 150);
+  if (ok && u >= run + jump) { burst(720, FLOOR - 120, t, t0 + run + jump, 50, ['#ffc95e', '#fff', '#f0ae36'], 1000, 1.1, 37); check(860, FLOOR - 160, 60, GOLDL, popK(t, t0 + run + jump, 0.2)); }
+}
+// ---------------------------------------------------------------- 5. blueprint: PROJECT: YOU
+function s5(t) {
+  ctx.save(); ctx.fillStyle = 'rgba(30,70,140,0.25)'; ctx.fillRect(60, 660, 960, 800); ctx.strokeStyle = 'rgba(140,190,255,0.18)'; ctx.lineWidth = 1.5;
+  for (let x = 60; x <= 1020; x += 40) { ctx.beginPath(); ctx.moveTo(x, 660); ctx.lineTo(x, 1460); ctx.stroke(); } for (let y = 660; y <= 1460; y += 40) { ctx.beginPath(); ctx.moveTo(60, y); ctx.lineTo(1020, y); ctx.stroke(); } ctx.restore();
+  txt('PROJECT: YOU', 100, 712, 34, '#cfe3ff', 700, 'left', null, 6); txt('v37', 980, 712, 30, '#8fc8ff', 700, 'right');
+  setFigureScale(1.7); const J = solve(tallPose(Math.sin(t * 2)), 540, 1400, 0);
+  // blueprint outline, filling gold from the feet up on "greatest project"
+  ctx.save(); drawFigure(ctx, J, 'rgba(160,205,255,0.9)', 'rgba(120,170,230,0.7)', 'rgba(140,190,255,0.4)', 6); ctx.restore();
+  const fill = easeInOut(clamp((t - 7.0) / 0.7)); if (fill > 0) { ctx.save(); ctx.beginPath(); const top = lerp(1420, J.head[1] - 40, fill); ctx.rect(0, top, 1080, 1420 - top); ctx.clip(); fig(J, 24); ctx.restore(); }
+  // dimension lines
+  ctx.save(); ctx.strokeStyle = 'rgba(160,205,255,0.7)'; ctx.lineWidth = 2; ctx.setLineDash([8, 6]); ctx.beginPath(); ctx.moveTo(760, J.head[1] - L.head); ctx.lineTo(760, 1400); ctx.stroke(); ctx.restore();
+  txt('GROWING', 790, (J.head[1] + 1400) / 2, 22, '#8fc8ff', 700, 'left', null, 4);
+  // scaffolding
+  ctx.save(); ctx.strokeStyle = 'rgba(200,180,140,0.6)'; ctx.lineWidth = 6; for (const sx of [330, 750]) { ctx.beginPath(); ctx.moveTo(sx, 1400); ctx.lineTo(sx, 900); ctx.stroke(); } for (let y = 950; y < 1400; y += 120) { ctx.beginPath(); ctx.moveTo(330, y); ctx.lineTo(750, y + 60); ctx.stroke(); } ctx.restore();
+  const p = Math.round(lerp(12, 37, clamp((t - 6.2) / 1.4))); panel(150, 1200, 170, 90, 18, 'rgba(255,201,94,0.6)'); txt('BUILD', 235, 1226, 18, '#ffd98a', 700, 'center', null, 4); txt(`${p}%`, 235, 1262, 36, GOLDL, 700);
+  if (t >= 7.6) pill('YOUR GREATEST PROJECT', 540, 790, t, 7.6, { size: 30 });
+}
+// ---------------------------------------------------------------- 6. GIVE UP vs CONTINUE
+function s6(t) {
+  platform(80, 1000, FLOOR);
+  setFigureScale(1.35); const cont = t >= 12.24;
+  let P = cont ? runPose(t * 15, 1, 0.3) : { ...kneelPose(Math.sin(t * 3)), h: 0.4 };
+  if (t >= 12.0 && t < 12.24) P = mix(P, standPose(0), (t - 12.0) / 0.24);
+  const x = cont ? lerp(300, 820, easeIn2(clamp((t - 12.24) / 1.6))) : 300; fig(solve(P, x, FLOOR, 0), 20 + 20 * (cont ? 1 : 0));
+  if (cont) speedLines(t, 1150, 1370, 8, 1, 0.2 * smooth(12.24, 12.5, t), 140);
+  const kb = popK(t, 9.3, 0.3), shatter = clamp((t - 12.0) / 0.5);
+  if (shatter < 1) { ctx.save(); ctx.globalAlpha *= 1 - shatter; if (shatter > 0) { for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; ctx.save(); ctx.translate(320 + Math.cos(a) * 300 * shatter, 860 + Math.sin(a) * 200 * shatter + 400 * shatter * shatter); ctx.rotate(shatter * 6 + i); ctx.fillStyle = '#d9564b'; ctx.fillRect(-30, -16, 60, 32); ctx.restore(); } }
+    else button(320, 860, 380, 120, 'GIVE UP', 'red', kb); ctx.restore(); }
+  const pressC = t >= 12.24 && t < 12.45 ? 1 : 0;
+  button(780, 860, 380, 120, 'CONTINUE ▶', 'gold', popK(t, 9.45, 0.3) * (cont ? 1.06 : 1), pressC);
+  // the cursor drifts toward GIVE UP… then swerves to CONTINUE on "don't"
+  if (t >= 9.6) { let cx, cy; if (t < 11.52) { const u = easeInOut(clamp((t - 9.6) / 1.8)); cx = lerp(560, 360, u); cy = lerp(1100, 890, u); } else { const u = easeInOut(clamp((t - 11.52) / 0.6)); cx = lerp(360, 800, u); cy = lerp(890, 875, u) - 60 * Math.sin(Math.PI * u); } cursor(cx, cy); }
+  if (t >= 12.24) { ringFlash(780, 860, t, 12.24, '255,201,94', 100, 560, 0.5, 10); burst(780, 860, t, 12.24, 60, ['#ffc95e', '#fff', '#f0ae36'], 1200, 1.2, 12); }
+  if (t >= 12.3) { const k = popK(t, 12.4, 0.25); ctx.save(); ctx.translate(780, 965); ctx.scale(k, k); txt('ATTEMPT #38', 0, 0, 30, '#ffd98a', 700, 'center', null, 6); ctx.restore(); }
+}
+const easeIn2 = (u) => u * u;
+const SCENES = [s1, s2, s3, s4, s5, s6];
+window.renderFrame = (t) => frame(t, (t) => runScenes(t, SC, SCENES), PH, (t) => { if (t >= 12.95) endText(t, 12.95, [['Press', '#fff'], ['continue.', GOLDL]], 84); });
+window.__allSteps = { scenes: SC };
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>

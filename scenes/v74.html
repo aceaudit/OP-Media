@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script src="vo.js"></script>
+<script>
+// 74. Lazy vs Winners — split screen push-ups from frame 0. Lazy does two and dreams of the trophy; the winner never stops
+// and still wonders if it's enough. Ends on the rep count and "Which one are you?"
+initCanvas('c');
+const DUR = 11.0;
+const PH = [
+  [[0.24, 'Lazy*'], [0.96, 'people'], [1.44, 'do'], [1.68, 'a'], [1.92, 'little'], [2.24, 'work']],
+  [[2.56, 'and'], [2.88, 'think'], [3.2, 'they'], [3.36, 'should'], [3.6, 'be'], [3.76, 'winning.*']],
+  [[4.48, 'But'], [4.64, 'winners*'], [5.12, 'work'], [5.28, 'as'], [5.44, 'hard'], [5.68, 'as'], [5.92, 'possible!']],
+  [[6.56, 'and'], [6.8, 'still'], [7.04, 'worry*'], [7.52, 'if'], [7.68, "they're"], [7.92, 'being'], [8.16, 'lazy.*']],
+];
+CAP.end = 8.95;
+const F = 1330, LX = 50, RX = 575, K = 1.85, T_SWAP = 4.48, T_END = 8.95;
+// manual push-up figure: feet at (x0, F), body straight at angle th (radians up from horizontal)
+function pushJ(x0, th) {
+  const d = [Math.cos(th), -Math.sin(th)], P = (s) => [x0 + d[0] * s, F - L.w / 2 + d[1] * s];
+  const leg = L.thigh + L.shin, aF = P(0), kF = P(L.thigh * 0.98), pel = P(leg), neck = P(leg + L.torso), sh = P(leg + L.torso - 8 * L.torso / 94);
+  const head = [neck[0] + (L.neck + L.head) * Math.cos(th + 0.25), neck[1] - (L.neck + L.head) * Math.sin(th + 0.25)];
+  const hand = [sh[0] + 6, F - L.w / 2], l1 = L.upper, l2 = L.fore, dx = hand[0] - sh[0], dy = hand[1] - sh[1], dist = Math.min(Math.hypot(dx, dy), (l1 + l2) * 0.999);
+  const a = Math.atan2(dy, dx), c1 = Math.acos(clamp((l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist), -1, 1));
+  const el = [sh[0] + l1 * Math.cos(a + c1), sh[1] + l1 * Math.sin(a + c1)];
+  return { pel, neck, sh, head, kN: kF, aN: aF, kF: [kF[0] - 3, kF[1] + 1], aF: [aF[0] - 4, aF[1]], eN: el, wN: hand, eF: [el[0] - 4, el[1]], wF: [hand[0] - 6, hand[1]], dy: 0 };
+}
+const lazyReps = [0.5, 1.6];                 // two slow reps
+const repTimes = (() => { const r = []; let tt = 0.15, rate = 1.5; while (tt < DUR) { r.push(tt); rate = tt < T_SWAP ? 1.6 : Math.min(3.2, 1.6 + (tt - T_SWAP) * 0.9); tt += 1 / rate; } return r; })();
+function winnerTh(t) { let i = -1; for (let k = 0; k < repTimes.length; k++) if (repTimes[k] <= t) i = k; if (i < 0) return 0.42; const a = repTimes[i], b = repTimes[i + 1] || a + 0.4, u = (t - a) / (b - a); return lerp(0.42, 0.1, Math.sin(Math.PI * u)); }
+const winnerCount = (t) => Math.round(repTimes.filter((r) => r <= t).length * (t > T_SWAP ? 1 + (t - T_SWAP) * 2.2 : 1));
+function trophy(x, y, k, col = GOLDL) { if (k <= 0) return; ctx.save(); ctx.translate(x, y); ctx.scale(k, k); ctx.fillStyle = col; ctx.shadowColor = 'rgba(255,180,60,0.8)'; ctx.shadowBlur = 20; ctx.beginPath(); ctx.moveTo(-34, -40); ctx.lineTo(34, -40); ctx.lineTo(26, 6); ctx.quadraticCurveTo(0, 26, -26, 6); ctx.closePath(); ctx.fill(); ctx.fillRect(-7, 16, 14, 18); ctx.fillRect(-24, 32, 48, 10); ctx.lineWidth = 6; ctx.strokeStyle = col; ctx.beginPath(); ctx.arc(-34, -22, 14, Math.PI / 2, Math.PI * 1.5); ctx.arc(34, -22, 14, -Math.PI / 2, Math.PI / 2); ctx.stroke(); ctx.restore(); }
+function half(x0, w, lit, title, col) {
+  ctx.save(); ctx.globalAlpha *= lit; ctx.fillStyle = col === GOLDL ? 'rgba(255,201,94,0.05)' : 'rgba(255,255,255,0.025)'; ctx.fillRect(x0, 660, w, 820); ctx.restore();
+  txt(title, x0 + w / 2, 735, 58, col, 700, 'center', col === GOLDL ? 'rgba(255,170,50,0.6)' : null, 8);
+}
+function scene(t) {
+  const sw = smooth(T_SWAP - 0.1, T_SWAP + 0.15, t), fin = smooth(T_END, T_END + 0.3, t);
+  const litL = lerp(1, 0.35, sw), litR = lerp(0.45, 1, sw);
+  ctx.save(); ctx.globalAlpha *= 1 - 0.7 * fin; half(0, 540, litL, 'LAZY', 'rgba(240,238,232,0.85)'); half(540, 540, litR, 'WINNER', GOLDL); ctx.restore();
+  ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(540, 670); ctx.lineTo(540, 1470); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(40, F, 460, 3); ctx.fillRect(580, F, 460, 3); ctx.restore();
+  setFigureScale(K);
+  // ---- lazy
+  ctx.save(); ctx.globalAlpha *= litL;
+  const lazyDone = t >= 2.3, lie = smooth(2.3, 2.6, t);
+  let lazyCount = lazyReps.filter((r) => t >= r + 0.5).length;
+  if (!lazyDone) { let th = 0.42; for (const r of lazyReps) if (t >= r && t < r + 1.0) th = lerp(0.42, 0.18, Math.sin(Math.PI * (t - r) / 1.0)); drawFigure(ctx, pushJ(LX, th), GREY, GREY_FAR, GREY_GLOW, 6); }
+  else { // flops onto his back and dreams of winning
+    const J = solve({ ...standPose(0), shN: 2.6, elN: 0.6, shF: 2.4, elF: 0.8, hipN: 0.3, kneeN: 0.8, hipF: 0.1, kneeF: 0.6 }, 0, 0, 0, false, 0);
+    const px = LX + 270, py = F - 26; ctx.save(); ctx.translate(px, py); ctx.rotate(-Math.PI / 2 * lie); ctx.translate(-J.pel[0], -J.pel[1]);
+    drawFigure(ctx, J, GREY, GREY_FAR, GREY_GLOW, 6); ctx.restore();
+    const bk = popK(t, 2.9, 0.3); bubble(300, 1060, 110, bk, LX + 90, F - 70, 'rgba(22,21,26,0.95)', 'rgba(255,201,94,0.7)');
+    if (bk > 0) { trophy(300, 1056, bk * 1.15); txt('#1', 300, 1130, 26 * bk, '#ffd98a', 700); }
+    if (t >= 3.76) { ctx.save(); ctx.globalAlpha *= 0.6; zzz(LX + 30, F - 110, t); ctx.restore(); }
+  }
+  ctx.save(); ctx.globalAlpha *= 1 - fin; counter(270, 880, 'REPS', lazyCount, 'rgba(240,238,232,0.85)', 260, 170); ctx.restore();
+  ctx.restore();
+  // ---- winner
+  ctx.save(); ctx.globalAlpha *= litR;
+  const th = winnerTh(t), J = pushJ(RX, th);
+  fig(J, 14 + 16 * sw);
+  if (t > T_SWAP) sweat(J.head[0] + 10, J.head[1] - 40, t, 3);
+  const n = winnerCount(Math.min(t, T_END)); ctx.save(); ctx.globalAlpha *= 1 - fin; counter(810, 880, 'REPS', n, GOLDL, 260, 170); ctx.restore();
+  // still worrying: "enough?"
+  const wk = popK(t, 7.04, 0.25) * (1 - smooth(8.7, 8.95, t));
+  if (wk > 0) { bubble(880, 1070, 96, wk, J.head[0] + 10, J.head[1] - 20, 'rgba(22,21,26,0.95)', 'rgba(255,255,255,0.5)'); txt('enough?', 880, 1070, 34 * wk, '#f4f2ee', 700); }
+  ctx.restore();
+  if (t >= T_SWAP) { ringFlash(810, 860, t, T_SWAP + 0.1, '255,201,94', 80, 360, 0.45, 8); }
+  if (t >= 5.92) { const k = punch(t, 5.92, 0.12, 0.15); ctx.save(); ctx.translate(810, 860); ctx.scale(k, k); ctx.translate(-810, -860); ctx.restore(); burst(810, 860, t, 5.92, 30, ['#ffc95e', '#fff'], 800, 0.9, 59); }
+  // ---- final scoreboard
+  if (fin > 0) {
+    ctx.save(); ctx.globalAlpha *= fin; ctx.fillStyle = 'rgba(8,8,10,0.75)'; ctx.fillRect(0, 640, 1080, 860); ctx.restore();
+    const kl = popK(t, T_END + 0.05, 0.3), kr = popK(t, T_END + 0.3, 0.3);
+    if (kl > 0) { ctx.save(); ctx.translate(270, 1020); ctx.scale(kl, kl); txt('LAZY', 0, -120, 34, 'rgba(240,238,232,0.7)', 700, 'center', null, 8); txt(String(lazyCount), 0, 10, 190, 'rgba(240,238,232,0.8)', 700); txt('REPS', 0, 130, 30, 'rgba(240,238,232,0.6)', 700, 'center', null, 6); ctx.restore(); }
+    if (kr > 0) { ctx.save(); ctx.translate(810, 1020); ctx.scale(kr, kr); txt('WINNER', 0, -120, 34, '#ffd98a', 700, 'center', null, 8); txt(String(winnerCount(T_END)), 0, 10, 190, GOLDL, 700, 'center', 'rgba(255,170,50,0.8)'); txt('REPS', 0, 130, 30, '#ffd98a', 700, 'center', null, 6); ctx.restore();
+      burst(810, 1020, t, T_END + 0.3, 50, ['#ffc95e', '#fff', '#f0ae36'], 1100, 1.2, 74); }
+    txt('vs', 540, 1030, 40, 'rgba(240,238,232,0.5)', 700);
+  }
+}
+window.renderFrame = (t) => frame(t, scene, PH, (t) => { if (t >= T_END) endText(t, T_END + 0.6, [['Which one', '#fff'], ['are you?', GOLDL]], 78); });
+window.__allSteps = { swap: T_SWAP, end: T_END, reps: winnerCount(T_END) };
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>

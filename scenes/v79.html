@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script src="vo.js"></script>
+<script>
+const PH = [
+  [[0.0, 'Every'], [0.48, 'successful*'], [1.36, 'person']],
+  [[1.68, 'has'], [2.0, 'a'], [2.16, 'painful!'], [2.8, 'story.']],
+  [[3.68, 'And'], [3.92, 'every'], [4.32, 'painful*'], [4.96, 'story']],
+  [[5.44, 'has'], [5.68, 'a'], [5.92, 'successful*'], [6.64, 'ending.*']],
+  [[7.52, 'Accept*'], [8.08, 'the'], [8.32, 'pain.*']],
+  [[8.96, 'And'], [9.28, 'get'], [9.52, 'ready'], [10.0, 'for'], [10.24, 'success.!']],
+];
+
+// 79. Painful Story — frame 0 is the win at the top of the story. The camera pulls back to show the open book:
+// the line drops into a painful valley before it climbs. He accepts the pain at the bottom, gets ready, and runs the climb.
+initCanvas('c');
+const DUR = 13.0;
+CAP.end = 11.5;
+const KP = [[110, 900], [240, 960], [350, 1170], [450, 1300], [560, 1250], [680, 1090], [800, 890], [910, 770], [990, 745]];
+const CURVE = (() => { const out = []; for (let s = 0; s < KP.length - 1; s++) { const p0 = KP[Math.max(0, s - 1)], p1 = KP[s], p2 = KP[s + 1], p3 = KP[Math.min(KP.length - 1, s + 2)];
+  for (let i = 0; i < 25; i++) { const u = i / 25, u2 = u * u, u3 = u2 * u; out.push([0, 1].map((k) => 0.5 * (2 * p1[k] + (-p0[k] + p2[k]) * u + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * u2 + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * u3))); } }
+  out.push(KP[KP.length - 1]); return out; })();
+const cp = (u) => { const f = clamp(u) * (CURVE.length - 1), i = Math.floor(f), r = f - i, a = CURVE[i], b = CURVE[Math.min(CURVE.length - 1, i + 1)]; return [lerp(a[0], b[0], r), lerp(a[1], b[1], r)]; };
+const U_VALLEY = 0.375, U_PEAK = 0.9;
+// camera keyframes [t, cx, cy, zoom]
+const CAM = [[0, 880, 690, 1.75], [2.0, 880, 690, 1.75], [2.7, 540, 1040, 1.0], [7.3, 540, 1040, 1.0], [7.9, 450, 1180, 1.55], [10.15, 450, 1180, 1.55], [10.7, 600, 1000, 1.05], [11.3, 600, 1000, 1.05], [12.2, 820, 750, 1.35], [99, 820, 750, 1.35]];
+function cam(t) { let i = 0; while (i < CAM.length - 2 && t >= CAM[i + 1][0]) i++; const a = CAM[i], b = CAM[i + 1], u = easeInOut(clamp((t - a[0]) / (b[0] - a[0]))); return [lerp(a[1], b[1], u), lerp(a[2], b[2], u), lerp(a[3], b[3], u)]; }
+function book() {
+  ctx.save(); ctx.fillStyle = 'rgba(30,29,34,0.95)'; ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.roundRect(50, 690, 485, 700, [20, 6, 6, 20]); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.roundRect(545, 690, 485, 700, [6, 20, 20, 6]); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.04)'; for (let i = 0; i < 12; i++) { ctx.fillRect(90, 760 + i * 52, 400, 3); ctx.fillRect(585, 760 + i * 52, 400, 3); }
+  ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(535, 690, 10, 700); ctx.restore();
+  txt('CHAPTER 1', 120, 730, 20, 'rgba(240,238,232,0.45)', 700, 'left', null, 5);
+}
+function curveLine(u0, u1, col, w, glow) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 20; } ctx.beginPath(); for (let i = 0; i <= 120; i++) { const p = cp(lerp(u0, u1, i / 120)); i ? ctx.lineTo(...p) : ctx.moveTo(...p); } ctx.stroke(); ctx.restore(); }
+function painIcons(t) {
+  const items = [[0.16, 'rain'], [0.27, 'x'], [U_VALLEY, 'heart']];
+  items.forEach(([u, kind], i) => { const [x, y] = cp(u), k = popK(t, 2.75 + i * 0.12, 0.25); if (k <= 0) return; ctx.save(); ctx.translate(x - (kind === 'heart' ? 0 : 60), y - (kind === 'heart' ? 110 : 90)); ctx.scale(k * 0.9, k * 0.9);
+    if (kind === 'rain') { cloud(0, 0, 0.45, 'rgba(120,124,140,0.95)'); rain(-36, 16, 70, 60, t, 4, 'rgba(150,180,230,0.7)', 2); }
+    else if (kind === 'x') cross(0, 0, 40, RED, 1, 9);
+    else if (kind === 'heart') { heart(0, 0, 60, RED, 10); ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(0, -24); ctx.lineTo(-8, -10); ctx.lineTo(6, 0); ctx.lineTo(-2, 14); ctx.stroke(); }
+    else { ctx.fillStyle = '#e8ecf6'; ctx.beginPath(); ctx.arc(0, 0, 22, 0, TAU); ctx.fill(); ctx.fillStyle = 'rgba(30,29,34,1)'; ctx.beginPath(); ctx.arc(10, -6, 20, 0, TAU); ctx.fill(); }
+    ctx.restore(); });
+}
+function trophy(x, y, k) { if (k <= 0) return; ctx.save(); ctx.translate(x, y); ctx.scale(k, k); ctx.fillStyle = GOLDL; ctx.shadowColor = 'rgba(255,180,60,0.9)'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.moveTo(-26, -30); ctx.lineTo(26, -30); ctx.lineTo(20, 4); ctx.quadraticCurveTo(0, 20, -20, 4); ctx.closePath(); ctx.fill(); ctx.fillRect(-5, 12, 10, 14); ctx.fillRect(-18, 24, 36, 8); ctx.lineWidth = 5; ctx.strokeStyle = GOLDL; ctx.beginPath(); ctx.arc(-26, -16, 10, Math.PI / 2, Math.PI * 1.5); ctx.arc(26, -16, 10, -Math.PI / 2, Math.PI / 2); ctx.stroke(); ctx.restore(); }
+function scene(t) {
+  const [cx, cy, z] = cam(t);
+  ctx.save(); ctx.translate(540, 1040); ctx.scale(z, z); ctx.translate(-cx, -cy);
+  book();
+  // the line: grey through the pain, gold on the climb (drawn on "successful ending")
+  curveLine(0, U_VALLEY, 'rgba(255,138,126,0.85)', 9);
+  const climb = t < 2.6 ? 1 : clamp((t - 5.6) / 1.05);
+  curveLine(U_VALLEY, 1, 'rgba(255,255,255,0.12)', 9);
+  if (climb > 0) curveLine(U_VALLEY, lerp(U_VALLEY, 1, climb), GOLDL, 10, 'rgba(255,180,60,0.9)');
+  painIcons(t);
+  // THE END mark at the top
+  const [px, py] = cp(U_PEAK);
+  if (t < 2.6 || t >= 6.6) { star(px + 50, py - 210, 30, GOLDL, 30, 1, t * 0.6); txt('THE END', px - 20, py + 60, 22, '#ffd98a', 700, 'center', null, 6); }
+  // the hero
+  setFigureScale(0.85);
+  let P, x, y, hold = false;
+  if (t < 2.6) { [x, y] = cp(U_PEAK); P = cheerPose(Math.sin(t * 6)); hold = true; }
+  else if (t < 7.4) { [x, y] = cp(0.02); x += 0; P = standPose(Math.sin(t * 2)); if (t > 3.9) { const u = clamp((t - 3.9) / 1.3); [x, y] = cp(lerp(0.02, U_VALLEY, easeInOut(u))); P = u < 1 ? walkPose(t * 6, 0.15) : { ...standPose(0), h: 0.5, t: 0.15 }; } }
+  else if (t < 10.24) { [x, y] = cp(U_VALLEY); const acc = smooth(8.1, 8.5, t), ready = smooth(9.3, 9.6, t); P = mix({ ...standPose(0), h: 0.5, t: 0.15 }, { ...tallPose(Math.sin(t * 2)), shN: 1.0, elN: 2.0 }, acc); P = mix(P, crouchPose(), ready); }
+  else if (t < 11.25) { const u = easeInOut(clamp((t - 10.24) / 1.0)); [x, y] = cp(lerp(U_VALLEY, U_PEAK, u)); P = runPose(t * 16, 1, 0.35); }
+  else { [x, y] = cp(U_PEAK); P = cheerPose(Math.sin(t * 6)); hold = true; }
+  const J = solve(P, x, y, 0); fig(J, 18 + 18 * (hold ? 1 : 0));
+  if (hold) trophy(lerp(J.wN[0], J.wF[0], 0.5), Math.min(J.wN[1], J.wF[1]) - 36, t < 2.6 ? 0.8 : popK(t, 11.25, 0.3) * 0.8);
+  // rain over him in the valley, clearing as he accepts it
+  if (t >= 5.2 && t < 10.3) { const a = 1 - smooth(8.3, 8.9, t); ctx.save(); ctx.globalAlpha *= a; cloud(x + 10, y - 300, 0.6, 'rgba(90,94,110,0.95)'); rain(x - 50, y - 270, 110, 240, t, 8, 'rgba(150,180,230,0.7)', 3); ctx.restore(); if (t > 8.32) { ctx.save(); ctx.globalAlpha *= smooth(8.32, 8.7, t) * (1 - smooth(10.2, 10.4, t)); glowDot(x, y - 60, 140, 0.4); ctx.restore(); } }
+  if (t >= 9.3 && t < 10.24) txt('READY', x, y - 170, 28, '#ffd98a', 700, 'center', 'rgba(255,170,50,0.6)', 8);
+  if (t >= 11.25) { burst(px, py - 80, t, 11.25, 80, ['#ffc95e', '#fff', '#f0ae36'], 1300, 1.4, 79); ringFlash(px, py - 60, t, 11.25, '255,201,94', 40, 420, 0.6, 10); }
+  if (t < 2.6) { for (let i = 0; i < 26; i++) { const a = ((t * 0.5 + i * 0.137) % 1); ctx.save(); ctx.fillStyle = ['#ffc95e', '#fff', '#ff8a7e', '#8fc8ff'][i % 4]; ctx.translate(px - 220 + (i * 89) % 440, py - 400 + a * 520); ctx.rotate(t * 4 + i); ctx.fillRect(-6, -3, 12, 6); ctx.restore(); } spotlight(px, py, 0.18, 120); }
+  ctx.restore();
+  if (t >= 2.05 && t < 2.6) { ctx.save(); ctx.globalAlpha *= 0.5 * (1 - (t - 2.05) / 0.55); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; for (let i = 0; i < 16; i++) { const a = i / 16 * TAU; ctx.beginPath(); ctx.moveTo(540 + Math.cos(a) * 300, 1040 + Math.sin(a) * 300); ctx.lineTo(540 + Math.cos(a) * 700, 1040 + Math.sin(a) * 700); ctx.stroke(); } ctx.restore(); }
+}
+window.renderFrame = (t) => frame(t, scene, PH, (t) => { if (t >= 11.5) endText(t, 11.5, [['Your comeback', '#fff'], ['is coming.', GOLDL]], 74); });
+window.__allSteps = { reveal: 2.16, climbLine: 5.6, accept: 7.52, ready: 9.3, run: 10.24, top: 11.25 };
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>

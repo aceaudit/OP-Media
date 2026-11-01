@@ -1,0 +1,90 @@
+# captions + metadata for 70–81 (kept here so the log and the scheduling step use the same text)
+SUB = 'Subscribe for short animated reminders for overthinkers and burnt-out achievers. 🟡'
+CREDIT = '🎙 Original audio from a creator\'s reel'
+FOLLOW = 'Follow @ownpace.daily for daily reminders.'
+V = {
+ 70: dict(title='Two Choices', dur=9.4, src='s01', cover=8.3, style='2D character · voiceover (creator audio 7.3 s + 2 s payoff)',
+   desc='Alarm ringing over a sleeper with a dream bubble (frame 0); SNOOZE / WAKE UP cards pop on "two choices"; snooze makes the clock race to 10:30 and the dream fade; on "or" the clock rewinds, WAKE UP lights up, he jumps out of bed, the dream star flies out and he chases it; payoff: he leaps and catches it → "Snooze or chase?"',
+   hook='Every morning you get two choices. 🟡', msg="Keep sleeping with your dreams, or wake up and chase them. The alarm is the same either way.", cta='Send this to the friend who hits snooze five times.',
+   ig_tags='#ownpace #motivation #morningmotivation #discipline #chaseyourdreams',
+   tt='Morning motivation: every morning you have two choices, sleep with your dreams or wake up and chase them 🟡 {c}. Snooze or chase today? 👇 #morningmotivation #discipline #motivation #dreams #fyp #ownpace',
+   yt='Every Morning You Have Two Choices 🟡 Snooze or Chase Your Dreams #shorts', yt_desc='Keep sleeping with your dreams, or wake up and chase them.', yt_tags='#morningmotivation #motivation #discipline #dreams #ownpace'),
+ 71: dict(title='The Hard Years', dur=17.6, src='s02', cover=13.6, style='2D character · voiceover',
+   desc='A big age number ticks 16→23 on each spoken age while he hops up a staircase of years; on "easy" lightning cracks the steps; then a road where every line happens to him (friends peel away, red X\'s, he falls, FAILED, a lightbulb, a storm cloud, he fades to grey on "lose yourself") until he bursts gold on "stronger"; the eight years light up as THE BEST YEARS → "Hard years build you."',
+   hook="16 to 23 isn't easy. 🟡", msg='You lose friends, make mistakes, fall, fail, and sometimes lose yourself. Then you come out stronger, and those turn out to be the best years too.', cta='Send this to someone in their hard years right now.',
+   ig_tags='#ownpace #motivation #growth #mentalhealth #keepgoing',
+   tt="Growing up between 16 and 23 isn't easy: losing friends, mistakes, failure, losing yourself and getting stronger 🟡 {c}. What age was your hardest? 👇 #growingup #selfgrowth #motivation #mentalhealth #fyp #ownpace",
+   yt="The Age of 16 to 23 Isn't Easy 🟡 But It Makes You Stronger #shorts", yt_desc='Lose friends, make mistakes, fall, fail, lose yourself, and become stronger. Those are the best years of your life too.', yt_tags='#selfgrowth #motivation #growingup #mentalhealth #ownpace'),
+ 72: dict(title='Only Focus', dur=13.7, src='s03', cover=12.6, style='2D character · voiceover',
+   desc='Distractions orbit him at an easel (phone 99+, likes, RANK #48, someone else\'s trophy); the spotlight snaps shut on "focus"; every attempt at a circle gets rounder (pinned attempts, SKILL bar, LEVEL UP); the distractions crowd back on "everything else" and shatter on "waste"; a time-lapse to attempt #247, a perfect gold circle → "Get better at what you do."',
+   hook="Your only focus: get better at what you're doing. 🟡", msg="Attempt #1 is wobbly. Attempt #247 is a perfect circle. Everything else (likes, ranks, what they're doing) is noise.", cta='Save this for when you get distracted.',
+   ig_tags='#ownpace #focus #discipline #motivation #selfimprovement',
+   tt="How to focus: only care about getting better at what you're doing, everything else is a waste of time 🟡 {c}. What are you getting better at? 👇 #focus #discipline #selfimprovement #motivation #fyp #ownpace",
+   yt='Your Only Focus Should Be Getting Better 🟡 Everything Else Is a Waste of Time #shorts', yt_desc="Focus on what you're doing and get better at it. Attempt 1 to attempt 247.", yt_tags='#focus #discipline #selfimprovement #motivation #ownpace'),
+ 73: dict(title='Proud of You', dur=57.3, src='s04', cover=44.9, style='2D character · voiceover · gentle',
+   desc='He drags a huge sack (frame 0); a REMINDER notification; he walks through a storm as the ground cracks; alone in a room under his own rain cloud; a drawn-on smile with a weight chained to his heart; DAY 1→47 calendar under a day/night sky; awake in bed at 3:47 with racing thoughts; blocks pile on until he kneels; a YOU ARE HERE pin on "here you are"; holding a slab over everyone and waving off help; the road behind him lights up on "how far you\'ve come"; he sets the sack down on "rest" and friends carry pieces of it; a message arrives: "I\'m proud of you."; climbing a rope up a hill; BEHIND and WEAK tags crossed out, a gold heart on "human"; sunrise on "that\'s enough."',
+   hook='In case you forgot again. 🟡', msg="You made it through things you thought would break you. You've carried so much for so long. You're not behind, you're not weak, you're human. And that's enough.", cta='Send this to someone who needs to hear it today.',
+   ig_tags='#ownpace #mentalhealth #selflove #healing #youareenough',
+   tt="A reminder for anyone carrying too much: you made it through things you thought would break you, and you're allowed to rest 🟡 {c}. Send this to someone who needs it 💛 #mentalhealth #selflove #healing #anxietyrelief #fyp #ownpace",
+   yt="If No One's Told You Lately, I'm Proud of You 🟡 #shorts", yt_desc="You've survived days you didn't think you'd get through. It's okay to rest. You don't have to carry it all. You're human, and that's enough.", yt_tags='#mentalhealth #selflove #healing #youareenough #ownpace'),
+ 74: dict(title='Lazy vs Winners', dur=11.0, src='s05', cover=9.5, style='2D character · split screen · comment bait',
+   desc='Split-screen push-ups from frame 0 with REPS counters: LAZY does 2 and flops, dreaming of a #1 trophy; the spotlight swaps to WINNER, reps race up, sweat, an "enough?" bubble on "worry"; payoff scoreboard 2 vs 217 → "Which one are you?"',
+   hook='Lazy people vs winners. 🟡', msg='Lazy people do two reps and expect the trophy. Winners do 217 and still wonder if it was enough.', cta='Comment which one you were today.',
+   ig_tags='#ownpace #discipline #motivation #mindset #hardwork',
+   tt='Lazy people vs winners: winners work as hard as possible and still worry if they are being lazy 🟡 {c}. Which one are you? 👇 #discipline #hardwork #motivation #mindset #fyp #ownpace',
+   yt='Lazy People vs Winners 🟡 Which One Are You? #shorts', yt_desc="Lazy people do a little work and think they should be winning. Winners work as hard as possible and still worry they're being lazy.", yt_tags='#discipline #hardwork #motivation #mindset #ownpace'),
+ 75: dict(title='Expect Less, Demand More', dur=54.6, src='s06', cover=1.0, style='2D character · voiceover',
+   desc='His mood is a battery wired to other people (frame 0, 100%); it drains with every let-down (empty chair, a coworker with feet up, a shattered "I promise", a big heart vs a small one, people walking off, a gift turned away) to 6%; a shrug on "it\'s fine"; sliders FROM PEOPLE → LOW, FROM YOURSELF → HIGH; plugged into himself he charges through four "you\'ll…" moments (puzzle piece, vaulting a wall, walking on, empty seats lighting up gold); he cuts the cords on "power"; LESS vs MORE; walks on inside a shield that bounces the darts → "Expect less. Demand more." Audio: one sentence removed (contains profanity) and the host\'s reply at the end left out.',
+   hook='Stop plugging your mood into other people. 🟡', msg="People will cancel, change and let you down. That's human nature. Keep your expectations of others low and of yourself high, and nobody gets to mess with your peace.", cta='Save this for the next time someone disappoints you.',
+   ig_tags='#ownpace #mindset #selfrespect #peace #motivation',
+   tt='Expect less from people and demand more from yourself, so nobody can mess with your peace 🟡 {c}. Who needed to hear this? 👇 #mindset #selfrespect #expectations #motivation #fyp #ownpace',
+   yt='Expect Less From People, Demand More From Yourself 🟡 #shorts', yt_desc="Your mood shouldn't depend on whether someone showed up. Keep expectations of people low and of yourself high.", yt_tags='#mindset #selfrespect #expectations #motivation #ownpace'),
+ 76: dict(title="The Work You're Avoiding", dur=11.6, src='s07', cover=9.6, style='2D character · voiceover (creator audio + 2 s payoff)',
+   desc='He digs holes everywhere (frame 0) looking for the magic, each one empty, next to a rock marked THE WORK; light leaks from its cracks on "work"; he turns away; then swings a pickaxe at it, cracks spreading on every hit, and it breaks open on the second "avoiding" → "Do the work you avoid." Audio: the aside between the two quotes (contains profanity) replaced by our pickaxe hits.',
+   hook="The magic you're looking for is in the work you're avoiding. 🟡", msg="He dug everywhere except under the one rock he didn't want to touch.", cta="What's your rock? Tell me below.",
+   ig_tags='#ownpace #discipline #motivation #procrastination #mindset',
+   tt="Stop procrastinating: the magic you're looking for is in the work you're avoiding 🟡 {c}. What are you avoiding right now? 👇 #procrastination #discipline #motivation #mindset #fyp #ownpace",
+   yt="The Magic You're Looking For Is in the Work You're Avoiding 🟡 #shorts", yt_desc='Stop digging everywhere else. Do the work you keep avoiding.', yt_tags='#procrastination #discipline #motivation #mindset #ownpace'),
+ 77: dict(title='Same Letters', dur=26.4, src='s08', cover=4.9, style='2D · letter tiles · save bait',
+   desc='Letter tiles shuffle at frame 0; each bad word drops in, its letters get counted, then every tile flips into the good word (SAME N LETTERS): hate/love, enemies/friends, lying/truth, failure/success, cry/joy, negativity/positivity; the pairs stack into a ledger; on "choice" the bad column gets crossed out and he steps over to the gold side → "Same letters. Choose the better side."',
+   hook='Hate has 4 letters. So does love. 🟡', msg='Enemies and friends: 7. Lying and truth: 5. Failure and success: 7. Cry and joy: 3. Negativity and positivity: 10. You always have a choice, so choose the better side of it.', cta='Save this one.',
+   ig_tags='#ownpace #mindset #positivity #motivation #choices',
+   tt='Hate has four letters but so does love, and failure has seven but so does success: you always have a choice 🟡 {c}. Which pair hit you? 👇 #positivity #mindset #motivation #choices #fyp #ownpace',
+   yt='Hate Has 4 Letters, But So Does Love 🟡 You Always Have a Choice #shorts', yt_desc='Enemies/friends, lying/truth, failure/success, cry/joy, negativity/positivity. Same letters. Choose the better side.', yt_tags='#positivity #mindset #motivation #choices #ownpace'),
+ 78: dict(title='Turtle Theory', dur=35.4, src='s09', cover=1.6, style='2D · voiceover',
+   desc='A glowing gold sea turtle swims while fish dart past (frame 0); fish race by, a shark sends them panicking, the leaders wear 1st/2nd/3rd while the turtle is LAST and doesn\'t care; a STROKE counter; a storm on "chaos", calm on "calm"; OCEAN→SHORE and it crawls onto the sand at sunset; the SPEED gauge cracks and a road of PATIENCE bricks is laid; a sprinter burns out while the turtle stays IN MOTION; 1%→37% "still progress"; a PRESSURE gauge bursts while the turtle glows with PEACE → "Slow is fine. Stay in motion."',
+   hook='Have you heard of the turtle theory? 🟡', msg="Turtles don't rush, don't panic and don't care who's ahead. They keep swimming, one stroke at a time, and always make it to shore. Slow progress is still progress.", cta='Send this to someone who feels behind.',
+   ig_tags='#ownpace #slowprogress #patience #mentalhealth #keepgoing',
+   tt="The turtle theory: slow progress is still progress, you don't need to sprint, you just need to stay in motion 🟡 {c}. Who needs this today? 👇 #turtletheory #slowprogress #patience #motivation #fyp #ownpace",
+   yt='The Turtle Theory 🟡 Slow Progress Is Still Progress #shorts', yt_desc="Don't rush, don't panic, don't watch who's ahead. You don't need to sprint, just stay in motion. Peace will always outlast pressure.", yt_tags='#turtletheory #slowprogress #patience #motivation #ownpace'),
+ 79: dict(title='Painful Story', dur=13.0, src='s10', cover=0.5, style='2D character · voiceover (creator audio + 1.6 s payoff)',
+   desc='Frame 0 is the win: him on top of the story line with a trophy and confetti; the camera pulls back to an open book where the line drops into a painful valley (rain, X, broken heart); the climb draws in gold to THE END; he accepts the pain at the bottom (the rain clears), crouches READY and runs the climb on "success" → "Your comeback is coming."',
+   hook='Every successful person has a painful story. 🟡', msg='And every painful story can have a successful ending. Accept the pain, and get ready.', cta='Send this to someone in the middle of their valley.',
+   ig_tags='#ownpace #motivation #resilience #comeback #mindset',
+   tt='Every successful person has a painful story, and every painful story has a successful ending 🟡 {c}. What chapter are you in? 👇 #motivation #resilience #comeback #mindset #fyp #ownpace',
+   yt='Every Successful Person Has a Painful Story 🟡 #shorts', yt_desc='Every painful story has a successful ending. Accept the pain and get ready for success.', yt_tags='#motivation #resilience #comeback #mindset #ownpace'),
+ 80: dict(title='Me vs Me', dur=18.8, src='s11', cover=16.6, style='2D character · race · voiceover',
+   desc='A race he\'s losing (4th, leaderboard, frame 0); the other lanes vanish on "competition" (YOUR LANE); his ghost from yesterday runs ahead (+0.42s → +0.03s, YESTERDAY tag); LAST YEAR on the couch vs NOW; stat bars GROWN / LEARNED / IMPROVED fill on each word; ME TODAY > ME YESTERDAY; a fighting-game VS screen on "me versus me" → NEW PERSONAL BEST, "Beat yesterday."',
+   hook='The only rival I have is who I was yesterday. 🟡', msg="Not them. Not their pace. Last year I was different. I've grown, learned and improved, and that's what matters.", cta='Comment one thing you do better than last year.',
+   ig_tags='#ownpace #selfimprovement #mevsme #motivation #growth',
+   tt="Stop comparing yourself to others, the only competition is the person you were yesterday, it's me vs me 🟡 {c}. What did you beat this year? 👇 #mevsme #selfimprovement #comparison #motivation #fyp #ownpace",
+   yt="It's Me vs Me 🟡 My Only Rival Is Who I Was Yesterday #shorts", yt_desc="I don't care who's doing better than me. Last year I was different. I've grown, learned and improved.", yt_tags='#mevsme #selfimprovement #comparison #motivation #ownpace'),
+ 81: dict(title='Restart', dur=14.4, src='s12', cover=0.3, style='2D character · game · voiceover (creator audio + 1.5 s payoff)',
+   desc='GAME OVER at frame 0 and RESTART gets clicked on the first word; ENERGY refills and the timer resets; a camera reticle locks FOCUS; ATTEMPT #1→#37 at a gap until the jump lands; a blueprint, PROJECT: YOU v37, filling gold on "greatest project"; GIVE UP vs CONTINUE, the cursor drifts toward GIVE UP, swerves on "don\'t", GIVE UP shatters and CONTINUE gets pressed → ATTEMPT #38, "Press continue."',
+   hook='Restart, reset and refocus as many times as you need. 🟡', msg="You are your own greatest project. Attempt #38 still counts. Just don't give up.", cta='Save this for your next game-over moment.',
+   ig_tags='#ownpace #dontgiveup #motivation #selfimprovement #keepgoing',
+   tt="Restart, reset and refocus as many times as you need, you are your own greatest project, just don't give up 🟡 {c}. What attempt are you on? 👇 #dontgiveup #selfimprovement #motivation #keepgoing #fyp #ownpace",
+   yt="Restart, Reset, Refocus as Many Times as You Need 🟡 Don't Give Up #shorts", yt_desc='You are your own greatest project. Press continue.', yt_tags='#dontgiveup #selfimprovement #motivation #keepgoing #ownpace'),
+}
+SLOTS = [(74, 'Mon Nov 2, 12:15 PM'), (78, 'Mon Nov 2, 5:30 PM'), (70, 'Tue Nov 3, 7:15 AM'), (77, 'Tue Nov 3, 12:15 PM'), (80, 'Tue Nov 3, 5:30 PM'), (72, 'Wed Nov 4, 7:15 AM'),
+         (76, 'Wed Nov 4, 12:15 PM'), (73, 'Wed Nov 4, 5:30 PM'), (81, 'Thu Nov 5, 7:15 AM'), (79, 'Thu Nov 5, 12:15 PM'), (75, 'Thu Nov 5, 5:30 PM'), (71, 'Fri Nov 6, 7:15 AM')]
+def ig(n): v = V[n]; return ' / '.join([v['hook'], v['msg'], v['cta'], CREDIT, FOLLOW, v['ig_tags']])
+def tt(n): return V[n]['tt'].format(c=CREDIT)
+def yt_desc(n): v = V[n]; return f"{v['yt_desc']} {CREDIT.replace('🎙 ', '')}. / {SUB} / {v['yt_tags']}"
+if __name__ == '__main__':
+    for n in V:
+        assert len(V[n]['yt']) <= 100, n
+        assert len(V[n]['ig_tags'].split()) == 5 and '#ownpace' in V[n]['ig_tags'], n
+        tags = [w for w in tt(n).split() if w.startswith('#')]; assert len(tags) == 6 and '#fyp' in tags and '#ownpace' in tags, (n, tags)
+        assert len(V[n]['yt_tags'].split()) == 5, n
+    print('captions ok', len(V))
