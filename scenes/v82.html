@@ -1,0 +1,143 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script src="vo.js"></script>
+<script src="cine.js"></script>
+<script>
+const PH = [
+  [[0.45, "Free.*"], [0.56, "No"], [0.67, "strings."]],
+  [[2.7, "One"], [2.81, "rule:"], [2.92, "at"], [3.03, "midnight,"], [3.14, "whatever's"], [3.25, "left"], [3.36, "is"], [3.47, "gone.*"]],
+  [[5.0, "You'd"], [5.11, "spend"], [5.22, "every"], [5.33, "cent,"], [5.44, "right?"]],
+  [[6.85, "Here's"], [7.05, "the"], [7.25, "thing…"]],
+  [[7.9, "86,400!"], [8.2, "seconds.*"]],
+  [[9.0, "Where"], [9.11, "did"], [9.22, "yours"], [9.33, "go"], [9.44, "today?"]],
+  [[12.35, "Put"], [12.46, "the"], [12.57, "phone"], [12.68, "down."]],
+  [[13.3, "Invest"], [13.41, "the"], [13.52, "rest.*"]]
+];
+
+// 82. 86,400 (v3 original, no voice) — SHOCK OPEN: a bank deposit slams in, "+$86,400". One rule: whatever's left at midnight
+// is gone. Twist: the $ flips into a clock — it's 86,400 SECONDS. The counter drains on scrolling / overthinking / "Monday",
+// then he puts the phone down and the last of it goes into a gold jar labelled YOU. Midnight bell on the end card.
+initCanvas('c');
+const DUR = 16.5;
+CAP.y = 430; CAP.end = 14.55;
+ATMO = { tint: [255, 196, 120], tintA: 0.05, shafts: 0.07, bokeh: 0.8 };
+const F = 1420, HX = 540, T_DEP = 0.05, T_RULE = 2.7, T_SPEND = 5.0, T_HUSH = 6.8, T_FLIP = 7.9, T_INV = 12.35, T_END = 14.6;
+const DRAINS = [[9.0, 'SCROLLING', 10800, 'phone'], [9.95, 'OVERTHINKING', 7200, 'cloud'], [10.9, 'WAITING FOR MONDAY', 3600, 'cal']];
+const fmt = (n) => Math.round(n).toLocaleString('en-US');
+function balanceAt(t) {
+  let v = 86400 * easeOut(clamp((t - T_DEP) / 0.6));
+  for (const [ts, , amt] of DRAINS) v -= amt * easeOut(clamp((t - ts - 0.1) / 0.45));
+  if (t > T_INV) v -= 3600 * easeOut(clamp((t - T_INV - 0.2) / 0.6));
+  return v;
+}
+function phone(x, y, s = 1, rot = 0, lit = 1) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(s, s);
+  ctx.fillStyle = '#1b1a20'; ctx.strokeStyle = '#8f8c86'; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(-26, -46, 52, 92, 10); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = `rgba(150,190,255,${(0.55 * lit).toFixed(3)})`; ctx.beginPath(); ctx.roundRect(-20, -38, 40, 74, 6); ctx.fill(); ctx.restore();
+}
+function calIcon(x, y, s = 1, col = '#f4f2ee') { ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(-30, -26, 60, 56, 8); ctx.fill(); ctx.fillStyle = RED; ctx.fillRect(-30, -26, 60, 16); ctx.fillStyle = '#1b1a20'; ctx.font = '700 22px Poppins'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('MON', 0, 10); ctx.restore(); }
+function clockIcon(x, y, r, t, col = GOLDL) { ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = r * 0.16; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke(); ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + r * 0.55 * Math.sin(t * 6), y - r * 0.55 * Math.cos(t * 6)); ctx.moveTo(x, y); ctx.lineTo(x, y - r * 0.4); ctx.stroke(); ctx.restore(); }
+// the balance panel: dollars until the flip, seconds after
+function balance(t) {
+  const flip = clamp((t - T_FLIP) / 0.35), sx = Math.abs(Math.cos(flip * Math.PI)) + 0.02, isSec = flip >= 0.5;
+  const red = t > DRAINS[0][0] && t < T_INV ? 1 : 0, gold = t >= T_INV;
+  const k = popK(t, T_DEP, 0.3); if (k <= 0) return;
+  ctx.save(); ctx.translate(540, 700); ctx.scale(k * sx, k);
+  panel(-330, -96, 660, 192, 36, isSec ? (gold ? GOLDL : 'rgba(255,201,94,0.55)') : 'rgba(127,209,127,0.7)', 'rgba(20,19,24,0.96)', 5);
+  txt(isSec ? 'TODAY · SECONDS LEFT' : 'BANK · BALANCE', 0, -54, 26, 'rgba(240,238,232,0.6)', 700, 'center', null, 6);
+  const v = balanceAt(t), col = isSec ? (red && !gold ? '#ff8a7e' : GOLDL) : '#9be29b';
+  if (isSec) { clockIcon(-205, 22, 36, t, col); txt(fmt(v), 50, 26, 92, col, 700, 'center', isSec && !red ? 'rgba(255,170,50,0.6)' : null); }
+  else txt('$' + fmt(v), 0, 26, 92, col, 700, 'center', 'rgba(120,230,120,0.45)');
+  ctx.restore();
+  // drain / invest chips flying off the panel
+  DRAINS.forEach(([ts, lab, amt], i) => { const u = clamp((t - ts) / 1.1); if (u <= 0 || u >= 1) return;
+    ctx.save(); ctx.globalAlpha *= 1 - smooth(0.7, 1, u); ctx.translate(700 + 60 * easeOut(u), 840 + 50 * easeOut(u)); txt('−' + fmt(amt), 0, 0, 52, '#ff8a7e', 700, 'center', 'rgba(255,80,60,0.5)'); ctx.restore(); });
+  if (t > T_INV) { const u = clamp((t - T_INV - 0.2) / 1.2); if (u < 1) { ctx.save(); ctx.globalAlpha *= 1 - smooth(0.75, 1, u); ctx.translate(700 + 60 * easeOut(u), 840 + 50 * easeOut(u)); txt('→ YOU', 0, 0, 52, GOLDL, 700, 'center', 'rgba(255,170,50,0.6)'); ctx.restore(); } }
+}
+function depositCard(t) {
+  const k = popK(t, T_DEP, 0.25), out = smooth(2.3, 2.6, t); if (k <= 0 || out >= 1) return;
+  ctx.save(); ctx.globalAlpha *= 1 - out; ctx.translate(540, 885 - 60 * out); ctx.rotate(-0.04 * (1 - clamp((t - T_DEP) / 0.4))); ctx.scale(k, k);
+  panel(-300, -70, 600, 140, 30, 'rgba(127,209,127,0.75)', 'rgba(24,26,24,0.97)', 4);
+  ctx.fillStyle = '#7fd17f'; ctx.beginPath(); ctx.arc(-232, 0, 34, 0, TAU); ctx.fill(); txt('$', -232, 4, 44, '#0d1a0d', 700);
+  txt('DEPOSIT', -170, -24, 26, 'rgba(240,238,232,0.6)', 700, 'left', null, 4); txt('+$86,400.00', -170, 22, 50, '#9be29b', 700, 'left'); txt('now', 270, -24, 22, 'rgba(240,238,232,0.45)', 500, 'right');
+  ctx.restore();
+}
+function midnightClock(t) {
+  const k = popK(t, T_RULE, 0.3) * (1 - smooth(T_FLIP - 0.3, T_FLIP, t)); if (k <= 0) return;
+  const mm = 59 - 0.0, ss = (t - T_RULE) * 10;
+  ctx.save(); ctx.translate(870, 1080); ctx.scale(k, k); clockFace(0, 0, 86, 11, 59 + Math.min(0.9, (t - T_RULE) * 0.12), 0, t); ctx.restore();
+  ctx.save(); ctx.globalAlpha *= k; pill('RESETS AT 00:00', 870, 1220, t, T_RULE + 0.2, { size: 24 }); ctx.restore();
+}
+function jar(t) {
+  const k = popK(t, T_INV - 0.15, 0.3); if (k <= 0) return;
+  const fill = easeOut(clamp((t - T_INV - 0.2) / 1.0));
+  ctx.save(); ctx.translate(840, 1260); ctx.scale(k, k);
+  ctx.fillStyle = `rgba(255,201,94,${(0.85 * fill).toFixed(3)})`; ctx.shadowColor = 'rgba(255,180,60,0.8)'; ctx.shadowBlur = 30 * fill; ctx.beginPath(); ctx.roundRect(-78, 118 - 196 * fill, 156, 196 * fill, 18); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.roundRect(-90, -90, 180, 216, 26); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillRect(-70, -112, 140, 22);
+  txt('YOU', 0, 10, 46, fill > 0.5 ? INK : '#f4f2ee', 700, 'center', null, 6); ctx.restore();
+  // coins arcing from his hand into the jar
+  for (let i = 0; i < 8; i++) { const u = clamp((t - T_INV - 0.1 - i * 0.09) / 0.5); if (u <= 0 || u >= 1) continue; const x = lerp(600, 840, u), y = lerp(1050, 1180, u) - 180 * Math.sin(Math.PI * u);
+    ctx.save(); ctx.fillStyle = GOLDL; ctx.shadowColor = 'rgba(255,180,60,0.9)'; ctx.shadowBlur = 14; ctx.beginPath(); ctx.ellipse(x, y, 16, 16 * Math.abs(Math.cos(u * 9)) + 3, 0, 0, TAU); ctx.fill(); ctx.restore(); }
+}
+function heroExpr(t) {
+  if (t < 2.2) return 'joy'; if (t < T_SPEND) return t < T_RULE + 0.4 ? 'shock' : 'worried'; if (t < T_HUSH) return 'smug';
+  if (t < T_FLIP + 0.6) return 'shock'; if (t < T_INV - 0.3) return t < DRAINS[1][0] ? 'calm' : 'tired'; if (t < T_INV + 0.5) return 'determined'; return 'proud';
+}
+function scene(t, c) {
+  floorLine(F + 2, 0.22);
+  setFigureScale(1.65);
+  const phoneUp = t > 8.5 && t < T_INV - 0.25, cheer = t < 2.2 || (t > T_INV + 0.9);
+  let P = cheer ? cheerPose(Math.sin(t * 7)) : t > T_SPEND && t < T_HUSH ? { ...standPose(Math.sin(t * 2)), h: -0.12 } : standPose(Math.sin(t * 2));
+  if (t > T_HUSH && t < T_FLIP + 0.5) P = { ...standPose(0), h: -0.08, t: -0.04 };
+  if (t > DRAINS[1][0] && t < T_INV - 0.25) P = { ...P, t: 0.12, h: 0.3 };   // slumping over the phone
+  let J = solve(P, HX, F, 0);
+  if (phoneUp) { const [s, e] = armIK(J.sh, [J.head[0] + 70, J.head[1] + 70]); P = { ...P, shN: s, elN: e }; J = solve(P, HX, F, 0); }
+  else if (t >= T_INV - 0.25 && t < T_INV + 0.9) { const [s, e] = armIK(J.sh, [J.sh[0] + 140, J.sh[1] + 10]); P = { ...P, shN: s, elN: e }; J = solve(P, HX, F, 0); }
+  hero(J, { expr: heroExpr(t), t, speed: 0.25, blur: 18 + 16 * smooth(T_INV, T_INV + 0.6, t) });
+  if (phoneUp) phone(J.wN[0], J.wN[1] - 20, 1.1, -0.2, 1);
+  // the phone dropped on the floor when he chooses himself
+  if (t >= T_INV - 0.25) { const u = clamp((t - T_INV + 0.25) / 0.35); phone(lerp(J.sh[0] + 80, 330, u), lerp(1030, F - 16, u * u), 1.1, lerp(-0.2, -1.5, u), 1 - u); }
+  // drain icons rising from him
+  DRAINS.forEach(([ts, lab, amt, icon], i) => { const k = popK(t, ts, 0.25), out = smooth(ts + 0.85, ts + 1.05, t); if (k <= 0 || out >= 1 || t > T_INV) return;
+    const x = [250, 820, 250][i], y = [1000, 1080, 1180][i];
+    ctx.save(); ctx.globalAlpha *= 1 - out; ctx.translate(x, y); ctx.scale(k, k);
+    if (icon === 'phone') phone(0, -40, 0.9, 0.2); else if (icon === 'cloud') cloud(0, -40, 0.55, 'rgba(110,114,130,0.95)'); else calIcon(0, -40, 1);
+    txt(lab, 0, 36, 28, '#ff8a7e', 700, 'center', null, 4); ctx.restore(); });
+  midnightClock(t); jar(t);
+  // coins raining at the deposit
+  if (t < 2.4) burst(540, 980, t, 0.1, 40, ['#9be29b', '#ffc95e', '#ffffff'], 1100, 1.6, 82);
+}
+CAMK = [[0, 700, 950, 1.6, 0.03], [0.35, 690, 955, 1.5, 0], [2.4, 540, 1000, 1.05, 0], [5.0, 540, 1000, 1.0, 0], [6.8, 540, 980, 1.0, 0], [7.85, 540, 930, 1.35, 0],
+        [8.3, 540, 1000, 1.05, 0], [12.2, 540, 1020, 1.1, 0], [12.4, 640, 1080, 1.15, 0], [14.5, 620, 1060, 1.05, 0], [16.5, 540, 1040, 1.0, 0]];
+SHAKES = [[0.05, 18, 0.22], [T_FLIP, 20, 0.25], ...DRAINS.map((d) => [d[0], 8, 0.15]), [T_INV, 10, 0.2], [15.55, 10, 0.25]];
+PUNCHES = [[0.05, 0.08, 0.14], [T_RULE, 0.04, 0.12], [T_FLIP, 0.1, 0.16], ...DRAINS.map((d) => [d[0], 0.04, 0.1]), [T_INV, 0.06, 0.14], [15.55, 0.06, 0.15]];
+function screen(t) {
+  impactLines(t, 0.05, 540, 885, 0.3); flash(t, 0.05, 0.25, 0.15);
+  impactLines(t, T_FLIP, 540, 700, 0.35); flash(t, T_FLIP, 0.3, 0.15);
+  // the hush before the flip: everything dims
+  const hush = smooth(T_HUSH, T_HUSH + 0.3, t) * (1 - smooth(T_FLIP - 0.05, T_FLIP + 0.1, t));
+  if (hush > 0) { ctx.save(); ctx.fillStyle = `rgba(0,0,0,${(0.45 * hush).toFixed(3)})`; ctx.fillRect(0, 0, 1080, 1920); ctx.restore(); }
+  balance(t); depositCard(t);
+  if (t >= 15.55) ringFlash(540, 1000, t, 15.55, '255,201,94', 60, 700, 0.8, 10);
+}
+window.renderFrame = (t) => frame3(t, { scenes: scene, screen, PH, hook: { lines: [[['Every morning you get', 0]], [['$86,400', 1]]], tIn: 0, tOut: 2.6 },
+  after: (t) => { if (t >= T_END) endText(t, T_END, [['Spend today', '#fff'], ['on you.', GOLDL]], 76); } });
+window.__allSteps = {};
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>

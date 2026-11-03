@@ -1,0 +1,99 @@
+// 83. Year 4. Still Nothing. (v3 original, no voice) — ENDING FIRST: a giant gold bamboo towers over him, then rewinds into the
+// dirt. Year 1–4 he waters an empty patch through snow, sun and storm while the others laugh; in year 4 he sits down… and waters
+// again. X-ray under the soil: a huge glowing root network. Year 5 it erupts and the camera chases it up into the sky.
+initCanvas('c');
+const FF = 1.2, DUR = FF + 16.8;
+CAP.y = 430; CAP.end = 13.1;   // story time (captions are offset by FF)
+ATMO = { tint: [255, 200, 130], tintA: 0.05, shafts: 0.08, bokeh: 0.8 };
+const G = 1350, SX = 610, HXK = 430, HMAX = 2600;
+const YEARS = [[0, 'YEAR 1'], [1.6, 'YEAR 2'], [3.4, 'YEAR 3'], [5.2, 'YEAR 4'], [9.6, 'YEAR 5']];
+const T_SIT = 5.9, T_RISE = 6.85, T_XRAY = 7.6, T_SHOOT = 9.6, T_TOP = 12.5, T_END = 13.2;
+const WATER = [0.35, 2.0, 3.8, 7.0];   // story times he waters
+function bambooH(s) { return s < T_SHOOT ? 0 : HMAX * (s < T_TOP ? Math.pow(clamp((s - T_SHOOT) / (T_TOP - T_SHOOT)), 1.6) : 1); }
+function yearAt(s) { let y = YEARS[0][1]; for (const [ts, l] of YEARS) if (s >= ts) y = l; return y; }
+function soil(s, xr) {
+  ctx.save(); const g = ctx.createLinearGradient(0, G, 0, G + 900); g.addColorStop(0, `rgba(58,44,30,${(1 - 0.75 * xr).toFixed(3)})`); g.addColorStop(1, `rgba(20,15,10,${(1 - 0.6 * xr).toFixed(3)})`);
+  ctx.fillStyle = g; ctx.fillRect(-2000, G, 5000, 1400); ctx.fillStyle = '#6b8a3a'; ctx.fillRect(-2000, G - 6, 5000, 10); ctx.restore();
+  // dirt mound over the seed
+  ctx.save(); ctx.fillStyle = '#4a3826'; ctx.beginPath(); ctx.ellipse(SX, G, 70, 22, 0, Math.PI, 0); ctx.fill(); ctx.restore();
+}
+// the root network: deterministic branching, revealed over time
+const ROOTS = (() => { const R = []; let sd = 7; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+  const grow = (x, y, a, len, w, d, t0) => { if (d > 6 || len < 18) return; const x2 = x + Math.cos(a) * len, y2 = y + Math.sin(a) * len; R.push([x, y, x2, y2, w, t0]);
+    const n = d < 2 ? 3 : 2; for (let i = 0; i < n; i++) grow(x2, y2, a + (rnd() - 0.5) * 1.3, len * (0.68 + rnd() * 0.15), w * 0.7, d + 1, t0 + 0.18); };
+  for (let i = 0; i < 5; i++) grow(SX, G + 10, Math.PI / 2 + (i - 2) * 0.45, 150, 16, 0, i * 0.05); return R; })();
+function roots(s, a) {
+  if (a <= 0) return; const grow = clamp((s - T_XRAY + 0.1) / 1.4) * 1.6;
+  ctx.save(); ctx.globalAlpha *= a; ctx.lineCap = 'round'; ctx.shadowColor = 'rgba(255,180,60,0.9)'; ctx.shadowBlur = 18;
+  for (const [x1, y1, x2, y2, w, t0] of ROOTS) { const u = clamp((grow - t0) / 0.35); if (u <= 0) continue; ctx.strokeStyle = GOLDL; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(lerp(x1, x2, u), lerp(y1, y2, u)); ctx.stroke(); }
+  ctx.restore();
+}
+function bamboo(s) {
+  const h = bambooH(s); if (h <= 0) return; const top = G - h, w = 46, sway = h > 600 ? 0.004 * Math.sin(s * 1.3) : 0;
+  ctx.save(); ctx.translate(SX, G); ctx.rotate(sway); ctx.translate(-SX, -G);
+  ctx.shadowColor = 'rgba(255,180,60,0.8)'; ctx.shadowBlur = 26; ctx.fillStyle = GOLDL; ctx.beginPath(); ctx.roundRect(SX - w / 2, top, w, h + 4, [w / 2, w / 2, 0, 0]); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(SX - w / 2 + 8, top + 10, 7, h - 10);
+  ctx.fillStyle = '#c98a1e'; for (let y = G - 150; y > top + 30; y -= 150) ctx.fillRect(SX - w / 2 - 4, y, w + 8, 9);
+  // leaves along the upper part
+  for (let y = G - 300, i = 0; y > top + 60; y -= 210, i++) { const side = i % 2 ? 1 : -1, k = clamp((G - y) / Math.max(1, h) * 3 - 0.4);
+    ctx.save(); ctx.translate(SX + side * w / 2, y); ctx.rotate(side * (0.55 + 0.08 * Math.sin(s * 2 + i))); ctx.scale(side * k, k); ctx.fillStyle = '#e8b54a'; ctx.beginPath(); ctx.ellipse(70, 0, 76, 18, 0, 0, TAU); ctx.fill(); ctx.restore(); }
+  ctx.restore();
+}
+function can(x, y, rot = 0) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.fillStyle = '#7d8fa3'; ctx.strokeStyle = '#4b5866'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(-30, -24, 60, 48, 10); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(26, -8); ctx.lineTo(76, -34); ctx.lineWidth = 9; ctx.strokeStyle = '#7d8fa3'; ctx.stroke(); ctx.lineWidth = 4; ctx.strokeStyle = '#4b5866'; ctx.beginPath(); ctx.arc(-6, -30, 20, Math.PI, 0); ctx.stroke(); ctx.restore(); }
+function laughers(s) {
+  setFigureScale(1.15);
+  [[840, 1.9, 0], [940, 3.6, 1]].forEach(([x, t0, i]) => { const k = popK(s, t0, 0.3); if (k <= 0) return; const stun = s > T_SHOOT + 0.6;
+    const P = stun ? { ...standPose(0), h: -0.45, t: -0.08 } : { ...standPose(Math.sin(s * 9 + i)), t: 0.18 + 0.06 * Math.sin(s * 14 + i), h: 0.1, shN: 0.9, elN: 1.6 };
+    ctx.save(); ctx.globalAlpha *= clamp((k - 0.6) / 0.4); mirrorX(x, () => hero(solve(P, x, G, 0), { expr: stun ? 'shock' : s > 5.2 ? 'smug' : 'joy', t: s, col: WHITEC, blur: 6, seed: i + 3 })); ctx.restore();
+    if (!stun && s < T_XRAY && Math.floor(s * 3 + i) % 2 === 0) txt('HA', x + (i ? 40 : -60), G - 330 - 10 * i, 34, 'rgba(240,238,232,0.6)', 700); });
+}
+function weather(s) {
+  if (s > 1.6 && s < 2.6) { ctx.save(); ctx.fillStyle = 'rgba(240,244,255,0.8)'; for (let i = 0; i < 60; i++) { const x = (i * 97) % 1300 - 100, y = ((i * 211 + s * 260) % 1100) + 500; ctx.beginPath(); ctx.arc(x, y, 4 + (i % 3), 0, TAU); ctx.fill(); } ctx.restore(); }
+  if (s > 2.6 && s < 3.4) glowDot(900, 650, 260, 0.35);
+  if (s > 5.2 && s < 7.5) { cloud(420, 640, 1.4, 'rgba(70,74,90,0.95)'); cloud(820, 610, 1.6, 'rgba(60,63,78,0.95)'); rain(60, 700, 1000, 650, s, 40, 'rgba(150,180,230,0.5)', 5); }
+}
+function heroScene(s) {
+  setFigureScale(1.55);
+  const sit = s > T_SIT && s < T_RISE, shootCheer = s > T_SHOOT + 0.8;
+  let P, x = HXK;
+  if (shootCheer) P = cheerPose(Math.sin(s * 6));
+  else if (sit) P = mix(kneelPose(0), slumpSitPose(Math.sin(s * 2)), smooth(T_SIT, T_SIT + 0.3, s));
+  else P = { ...kneelPose(0), t: 0.75, h: 0.2 };
+  let J = solve(P, x, G, 0);
+  const watering = WATER.some((w) => s > w && s < w + 1.1);
+  if (!sit && !shootCheer) { const [a, e] = armIK(J.sh, [J.sh[0] + 120, J.sh[1] + (watering ? -10 : 40)]); P = { ...P, shN: a, elN: e }; J = solve(P, x, G, 0); }
+  const ex = shootCheer ? 'joy' : sit ? (s < T_SIT + 0.5 ? 'tired' : 'sad') : s > T_RISE && s < T_RISE + 0.8 ? 'determined' : s > 5.2 ? 'tired' : s > 3.4 ? 'calm' : 'happy';
+  hero(J, { expr: ex, t: s, speed: 0.2, blur: 18 + 20 * smooth(T_SHOOT, T_SHOOT + 1, s) });
+  if (!shootCheer) { if (sit) can(J.pel[0] + 90, G - 22, 0.2); else can(J.wN[0] + 20, J.wN[1], watering ? 0.55 : 0.05); }
+  if (watering && !sit) for (let i = 0; i < 14; i++) { const u = ((s * 2.2 + i / 14) % 1); const x0 = J.wN[0] + 90, y0 = J.wN[1] - 40; ctx.save(); ctx.fillStyle = 'rgba(150,200,255,0.85)'; ctx.beginPath(); ctx.arc(lerp(x0, SX - 20 + (i % 5) * 10, u), y0 + (G - 20 - y0) * u * u, 4, 0, TAU); ctx.fill(); ctx.restore(); }
+}
+function scene(s, c) {
+  const xr = smooth(T_XRAY - 0.2, T_XRAY + 0.3, s) * (1 - smooth(T_SHOOT - 0.4, T_SHOOT, s));
+  weather(s);
+  bamboo(s);
+  soil(s, xr); roots(s, xr + (s > T_SHOOT ? 0 : 0));
+  if (s >= T_SHOOT && s < T_SHOOT + 0.6) burst(SX, G - 10, s, T_SHOOT, 40, ['#6b4f33', '#8a6a44', '#ffc95e'], 900, 0.9, 83);
+  laughers(s); heroScene(s);
+}
+// time: 0–0.7 the ending (full bamboo), 0.7–FF rewinds the bamboo into the ground; then story time
+function sceneT(t) { if (t < 0.7) return T_TOP + 0.4 + t * 0.4; if (t < FF) return lerp(T_TOP + 0.68, 0, easeInOut((t - 0.7) / (FF - 0.7))); return t - FF; }
+CAMK = [[0, 600, 650, 0.5, 0], [0.7, 600, 640, 0.52, 0], [FF, 580, 1150, 1.15, 0.0], [FF + 5.0, 580, 1150, 1.15, 0], [FF + 5.9, 470, 1180, 1.45, 0], [FF + 6.8, 470, 1180, 1.5, 0],
+        [FF + 7.3, 580, 1150, 1.15, 0], [FF + 7.55, 600, 1420, 1.0, 0], [FF + 9.3, 600, 1440, 1.02, 0], [FF + 9.6, 600, 1150, 1.05, 0],
+        [FF + 10.2, 420, 900, 0.95, 0], [FF + 11.4, 280, 100, 0.8, 0], [FF + 12.5, 290, -1000, 0.75, 0], [FF + 13.3, 290, -900, 0.75, 0], [FF + 14.6, 420, 350, 0.42, 0], [DUR, 420, 380, 0.44, 0]];
+SHAKES = [[FF + T_SHOOT, 22, 0.35], [FF + T_XRAY, 8, 0.3], [FF + T_RISE, 8, 0.15]];
+PUNCHES = [[FF + T_SHOOT, 0.1, 0.16], [FF + T_RISE, 0.05, 0.12], [FF + T_XRAY, 0.04, 0.12], ...YEARS.slice(1).map(([ts]) => [FF + ts, 0.03, 0.1])];
+function screen(t) {
+  if (t < 0.7) recBadge(t, 'THE ENDING', 1);
+  if (t >= 0.7 && t < FF) rewindFX(t, 1);
+  const s = t - FF;
+  if (t >= FF && s < T_TOP + 0.6 && !(s > T_XRAY - 0.1 && s < T_SHOOT)) { const yr = yearAt(s), k = s < T_SHOOT ? popK(s, YEARS.filter(([ts]) => s >= ts).pop()[0], 0.25) : popK(s, T_SHOOT, 0.25);
+    ctx.save(); ctx.translate(540, 640); ctx.scale(k, k); panel(-120, -36, 240, 72, 36, s >= T_SHOOT ? GOLDL : 'rgba(255,255,255,0.3)', 'rgba(20,19,24,0.95)', 3); txt(yr, 0, 2, 34, s >= T_SHOOT ? GOLDL : '#f4f2ee', 700, 'center', null, 6); ctx.restore(); }
+  if (s >= T_SHOOT && s < T_TOP + 1.2) { const wk = Math.min(6, 1 + Math.floor(clamp((s - T_SHOOT) / (T_TOP - T_SHOOT)) * 6)); ctx.save(); ctx.globalAlpha *= 1 - smooth(T_TOP + 0.8, T_TOP + 1.2, s); pill('WEEK ' + wk, 540, 720, t, FF + T_SHOOT + 0.2, { size: 28 }); ctx.restore(); }
+  impactLines(t, FF + T_SHOOT, 540, 1200, 0.4); flash(t, FF + T_SHOOT, 0.3, 0.15); whipLines(t, FF + T_XRAY - 0.05, 0.2, 1);
+  if (s > T_SHOOT && s < T_TOP) speedLines(t, 500, 1500, 10, 1, 0.18 * smooth(T_SHOOT, T_SHOOT + 0.5, s), 180);
+}
+window.renderFrame = (t) => frame3(t, { scenes: (tt) => scene(sceneT(tt)), screen, PH, capOffset: FF, hook: { lines: [[['Would you quit', 0]], [['in ', 0], ['year 4', 1], ['?', 0]]], tIn: 0, tOut: FF + 2.0 },
+  after: (t) => { if (t >= FF + T_END) { ctx.save(); ctx.globalAlpha = smooth(FF + T_END, FF + T_END + 0.3, t); const g = ctx.createLinearGradient(0, 230, 0, 640); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.35, 'rgba(0,0,0,0.55)'); g.addColorStop(0.65, 'rgba(0,0,0,0.55)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 230, 1080, 410); ctx.restore(); } if (t >= FF + T_END) endText(t, FF + T_END, [["You're not behind.", '#fff'], ["You're building roots.", GOLDL]], 70); } });
+window.__allSteps = {};
+window.sceneReady = FONTS_READY();
