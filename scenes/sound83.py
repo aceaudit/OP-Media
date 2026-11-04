@@ -15,8 +15,6 @@ mel = [(0.2, 'E5'), (0.8, 'C5'), (1.4, 'A4'), (2.0, 'E5'), (2.6, 'D5'), (3.2, 'C
 for s, n in mel: M.note(T(s), 0, midi(n), 66, 1.0)
 pad(M, 6, T(0.1), T(5.2), bpm, ['Am', 'F', 'C', 'G'], 48, beats=4, oct_=0)
 # laughs: a descending pizzicato giggle
-for s in (1.9, 2.4, 3.6, 4.1, 4.6, 5.5, 6.1):
-    for i, n in enumerate(['E5', 'C5', 'A4']): M.note(T(s) + i * 0.08, 5, midi(n), 70, 0.1)
 # year 4: storm, minor strings, cello
 pad(M, 1, T(5.2), T(7.6), bpm, ['Am', 'Dm', 'E'], 62, beats=4, oct_=0, swell=(40, 85))
 M.note(T(5.2), 3, midi('A1'), 95, 2.4)
@@ -39,25 +37,18 @@ for s in (1.6, 3.4, 5.2): Dr.note(T(s), 8, midi('C2'), 105, 0.4)
 Dr.note(T(9.6), 8, midi('C2'), 127, 0.6)
 music = reverb(M.render(), 0.3, 2.6, 0.6) + Dr.render()
 fx = FX(D)
-fx.impact(0.0, 0.9, 42, 1.2, 0.8); fx.scrape(0.0, 0.7, 0.08)
-fx.rewind(0.72, 0.5, 0.5); fx.tape_stop(1.05, 0.2, 0.3)
-for s in (0.0,): fx.thud(T(s) + 0.1, 0.35)
-for s in (0.35, 2.0, 3.8, 7.0):
-    for i in range(7): fx.pop(T(s) + 0.15 + i * 0.12, 2200 + 200 * (i % 3), 0.07)
-for s in (1.6, 3.4, 5.2): fx.whoosh(T(s), 0.3, 0.3, 600, 6000)
-fx.scrape(T(1.6), 1.0, 0.06)                     # wind in the snow
-fx.chime(T(2.65), gain=0.12)                     # sun
-fx.scrape(T(5.2), 2.4, 0.07)                     # rain
-fx.impact(T(5.35), 0.7, 38, 1.4, 0.4); fx.impact(T(6.4), 0.5, 40, 1.2, 0.4)
-fx.thud(T(5.95), 0.6)
-for s in (6.2, 6.75): fx.heartbeat(T(s), 0.7)
-fx.impact(T(6.85), 0.35, 60, 0.4, 0.8)
-fx.whoosh(T(7.55), 0.5, 0.45, 4000, 150, False); fx.subdrop(T(7.6), 0.8, 70, 28, 1.8)
-for i in range(16): fx.tick(T(7.7) + i * 0.09, 0.08, 1800 + 150 * (i % 4))
-fx.riser(T(9.6), 1.0, 0.45); fx.impact(T(9.6), 1.4, 36, 1.8, 1.0); fx.subdrop(T(9.6), 1.0); fx.shatter(T(9.6), 0.25)
-for w in range(1, 6): fx.pop(T(9.6) + (T(12.5) - T(9.6)) * w / 6 + 0.05, 1200 + 100 * w, 0.18)
-fx.whoosh(T(10.0), 2.4, 0.3, 200, 5000)
-fx.impact(T(12.5), 0.9, 44, 1.6, 1.0); fx.chime(T(12.55), gain=0.2)
-fx.impact(T(13.2), 0.5, 50, 1.2, 0.6)
-master(voice, music, fx.a, D, 'sound83.wav', music_db=-3, fx_db=-5)
+# restrained, cinematic SFX only (user, Nov 4: "ease off on the corny sound effects")
+fx.impact(0.0, 0.7, 42, 1.2, 0.5); fx.scrape(0.0, 0.7, 0.05)
+fx.rewind(0.72, 0.5, 0.3)
+for s in (1.6, 3.4, 5.2): fx.whoosh(T(s), 0.3, 0.15, 600, 5000)
+fx.scrape(T(1.6), 1.0, 0.05)                     # wind in the snow
+fx.scrape(T(5.2), 2.4, 0.06)                     # rain
+fx.impact(T(5.35), 0.55, 38, 1.4, 0.3); fx.impact(T(6.4), 0.4, 40, 1.2, 0.3)   # distant thunder
+fx.thud(T(5.95), 0.3)
+fx.whoosh(T(7.55), 0.5, 0.3, 3000, 150, False); fx.subdrop(T(7.6), 0.7, 70, 28, 1.8)
+fx.riser(T(9.6), 1.0, 0.3); fx.impact(T(9.6), 1.2, 36, 1.8, 0.6); fx.subdrop(T(9.6), 0.9)
+fx.whoosh(T(10.0), 2.4, 0.2, 200, 4500)
+fx.impact(T(12.5), 0.7, 44, 1.6, 0.6)
+fx.impact(T(13.2), 0.4, 50, 1.2, 0.4)
+master(voice, music, fx.a, D, 'sound83.wav', music_db=-3, fx_db=-8)
 print('ok')

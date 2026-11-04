@@ -5,7 +5,7 @@ import numpy as np
 from score import *
 D = 15.0
 voice = np.zeros(int(D * SR))
-M = Part('m', D, -3).prog(0, 4).prog(1, 38).prog(2, 48).prog(3, 61).prog(4, 45).prog(5, 89).prog(6, 81).prog(7, 0)
+M = Part('m', D, -3).prog(0, 4).prog(1, 38).prog(2, 48).prog(3, 61).prog(4, 0).prog(5, 89).prog(6, 81).prog(7, 0)
 # 0–4.0 sleepy lo-fi EP
 for k, (t, ch) in enumerate([(0.1, 'Fmaj7' if 'Fmaj7' in CH else 'F'), (1.4, 'Em' if 'Em' in CH else 'C'), (2.7, 'Dm'), (3.4, 'G')]):
     for nn in chord_notes(ch, 0): M.note(t, 0, nn, 58, 1.2)
@@ -33,23 +33,19 @@ for t in (9.2, 13.2): Dr.note(t, 9, GM['crash'], 120, 1.5)
 Dr.note(9.2, 8, midi('C2'), 127, 0.6)
 music = reverb(M.render(), 0.22, 1.8, 0.5) + Dr.render()
 fx = FX(D)
-# phone buzz
-fx.impact(0.05, 0.8, 55, 0.5, 1.0)
-for burst_t in (0.05, 0.55, 1.05):
-    for i in range(10): fx.pop(burst_t + i * 0.025, 140 + 20 * (i % 2), 0.22)
-fx.whoosh(T_SW := 1.6, 0.3, 0.5, 600, 9000)
-fx.pop(2.6, 700, 0.3); fx.swish(3.15, 0.4); fx.thud(3.2, 0.5)
-fx.ding(4.0, 1760, 0.3, 0.4); fx.ding(4.12, 1760, 0.3, 0.4)
-for i, t in enumerate(np.arange(4.3, 8.2, 0.25)): fx.tick(t, 0.16 if i % 2 == 0 else 0.11, 2600 if i % 2 == 0 else 2100)
-fx.whoosh(4.7, 0.4, 0.3, 300, 3000)
-fx.pop(5.25, 1200, 0.25); fx.pop(5.4, 1350, 0.25)
-fx.scrape(6.6, 0.5, 0.12); fx.whoosh(7.4, 0.3, 0.5, 600, 9000); fx.chime(7.5, gain=0.12)
-for t in np.arange(7.7, 8.2, 0.33): fx.thud(t, 0.25)
-fx.ding(8.2, 1318.5, 0.4, 1.4); fx.ding(8.25, 1975.5, 0.25, 1.2)
-fx.heartbeat(8.5, 0.6)
-fx.riser(9.2, 0.6, 0.35); fx.impact(9.2, 1.3, 38, 1.4, 1.0); fx.subdrop(9.2, 0.8)
-for i, t in enumerate(np.arange(9.3, 12.2, 0.06)): fx.tick(t, 0.05, 3000 + 200 * (i % 3))
-for t in np.arange(9.4, 13.1, 0.27): fx.thud(t, 0.18)
-fx.riser(13.2, 2.0, 0.3); fx.impact(13.2, 0.9, 44, 1.2, 1.0); fx.chime(13.25, gain=0.2)
-master(voice, music, fx.a, D, 'sound84.wav', music_db=-3, fx_db=-5)
+# restrained, cinematic SFX only (user, Nov 4: "ease off on the corny sound effects")
+for burst_t in (0.05, 0.55, 1.05):                                                 # a real phone vibration, low and quiet
+    for i in range(10): fx.pop(burst_t + i * 0.025, 140 + 20 * (i % 2), 0.08)
+fx.impact(0.05, 0.5, 55, 0.5, 0.4)
+fx.whoosh(1.6, 0.3, 0.25, 600, 7000)
+fx.swish(3.15, 0.15)
+fx.ding(4.0, 1568, 0.08, 0.4)                                                      # one soft timer beep
+for i, t in enumerate(np.arange(4.3, 8.2, 0.5)): fx.tick(t, 0.06, 2200)
+fx.scrape(6.6, 0.5, 0.06); fx.whoosh(7.4, 0.3, 0.2, 600, 6000)
+for t in np.arange(7.7, 8.2, 0.33): fx.thud(t, 0.15)
+fx.ding(8.2, 1318.5, 0.12, 1.0)                                                    # the timer runs out
+fx.riser(9.2, 0.6, 0.25); fx.impact(9.2, 1.1, 38, 1.4, 0.6); fx.subdrop(9.2, 0.7)
+for t in np.arange(9.4, 13.1, 0.27): fx.thud(t, 0.1)
+fx.riser(13.2, 2.0, 0.2); fx.impact(13.2, 0.7, 44, 1.2, 0.6)
+master(voice, music, fx.a, D, 'sound84.wav', music_db=-3, fx_db=-8)
 print('ok')

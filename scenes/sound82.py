@@ -6,7 +6,7 @@ from score import *
 D = 16.5
 bpm = 100; b = 60 / bpm
 voice = np.zeros(int(D * SR))
-M = Part('m', D, -3).prog(0, 45).prog(1, 38).prog(2, 89).prog(3, 48).prog(4, 61).prog(5, 14).prog(6, 52).prog(7, 0)
+M = Part('m', D, -3).prog(0, 4).prog(1, 38).prog(2, 89).prog(3, 48).prog(4, 61).prog(5, 14).prog(6, 52).prog(7, 0)
 # 0–2.6 bright: pizzicato C major arps + bass
 for k, t in enumerate(np.arange(0.1, 2.65, b / 2)):
     ch = ['C', 'C', 'F', 'G'][int(t // (2 * b)) % 4]; nn = chord_notes(ch, 1); M.note(t, 0, nn[k % 3] + (12 if k % 4 == 3 else 0), 92, b / 2)
@@ -33,25 +33,13 @@ for t in (0.05, 7.9, 12.35, 14.6): Dr.note(t, 9, GM['crash'], 118, 1.5)
 Dr.note(7.9, 8, midi('C2'), 127, 0.6)
 music = reverb(M.render(), 0.2, 1.8, 0.5) + Dr.render()
 fx = FX(D)
-# deposit: cha-ching
-fx.impact(0.05, 1.0, 50, 0.6, 1.2); fx.ding(0.12, 2637, 0.35, 0.5); fx.ding(0.2, 3136, 0.3, 0.8); fx.shutter(0.06, 0.5)
-for i in range(10): fx.pop(0.25 + i * 0.07, 1500 + 120 * i, 0.16)
-fx.whoosh(2.4, 0.3, 0.3, 600, 7000)
-# the rule: ticking clock
-for i, t in enumerate(np.arange(2.75, 6.8, 0.5)): fx.tick(t, 0.22 if i % 2 == 0 else 0.15, 2600 if i % 2 == 0 else 2200)
-fx.ding(3.47, 880, 0.18, 0.9)
-fx.pop(5.44, 900, 0.25)
-# hush → flip
-for t in (6.9, 7.45): fx.heartbeat(t, 0.8)
-for i, t in enumerate(np.arange(6.85, 7.85, 0.25)): fx.tick(t, 0.28, 2400)
-fx.riser(7.9, 1.0, 0.4); fx.whoosh(7.85, 0.35, 0.5, 300, 8000); fx.impact(7.9, 1.4, 38, 1.6, 1.0); fx.subdrop(7.9, 1.0)
-# drains
-for t in (9.0, 9.95, 10.9): fx.glitch(t, 0.12, 0.3); fx.whoosh(t + 0.1, 0.45, 0.35, 2500, 200, False); fx.thud(t + 0.08, 0.45)
-fx.tape_stop(12.0, 0.35, 0.3)
-# phone drop + coins into the jar
-fx.thud(12.45, 0.6); fx.tick(12.5, 0.3, 1400); fx.tick(12.56, 0.2, 1700)
-for i in range(8): fx.ding(12.55 + i * 0.09, 1568 * 2 ** (i / 12 * 1.4), 0.14, 0.35)
-fx.chime(13.35, gain=0.22)
-fx.impact(14.6, 0.6, 50, 1.0, 0.8); fx.whoosh(14.55, 0.3, 0.3, 800, 7000)
-master(voice, music, fx.a, D, 'sound82.wav', music_db=-3, fx_db=-4)
+# restrained, cinematic SFX only (user, Nov 4: "ease off on the corny sound effects")
+fx.impact(0.05, 0.7, 50, 0.6, 0.6); fx.ding(0.12, 1046.5, 0.08, 0.6)          # deposit lands: low hit + one soft notification tone
+fx.whoosh(2.4, 0.3, 0.18, 600, 6000)
+for i, t in enumerate(np.arange(2.75, 7.85, 0.5)): fx.tick(t, 0.07, 2200)       # a quiet clock under the rule and the hush
+fx.riser(7.9, 1.0, 0.3); fx.whoosh(7.85, 0.35, 0.3, 300, 7000); fx.impact(7.9, 1.2, 38, 1.6, 0.6); fx.subdrop(7.9, 0.9)
+for t in (9.0, 9.95, 10.9): fx.whoosh(t + 0.1, 0.45, 0.16, 1800, 200, False)    # each drain: a soft downward air
+fx.thud(12.45, 0.3)
+fx.impact(14.6, 0.5, 50, 1.0, 0.5); fx.whoosh(14.55, 0.3, 0.16, 800, 6000)
+master(voice, music, fx.a, D, 'sound82.wav', music_db=-3, fx_db=-8)
 print('ok')
