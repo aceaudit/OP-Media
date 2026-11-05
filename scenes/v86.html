@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: 'Poppins'; font-weight: 500; src: url('fonts/Poppins-Medium.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 400; src: url('fonts/Poppins-Regular.ttf'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700; src: url('fonts/Poppins-Bold.ttf'); }
+  html, body { margin: 0; padding: 0; background: #08080a; overflow: hidden; }
+  canvas { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script src="rig2d.js"></script>
+<script src="v2.js"></script>
+<script src="vo.js"></script>
+<script src="cine.js"></script>
+<script>
+const PH = [
+  [[0.4, "You"], [0.53, "know"], [0.66, "it's"], [0.79, "the"], [0.92, "wrong"], [1.05, "bus."]],
+  [[2.6, "Every"], [2.72, "stop"], [2.84, "takes"], [2.96, "you"], [3.08, "further"], [3.2, "away."]],
+  [[5.0, "But"], [5.12, "you"], [5.24, "already"], [5.36, "paid"], [5.48, "for"], [5.6, "the"], [5.72, "ticket…"]],
+  [[7.0, "That's"], [7.12, "not"], [7.24, "a"], [7.36, "reason"], [7.48, "to"], [7.6, "stay.*"]],
+  [[8.7, "Step"], [8.9, "off.!"]],
+  [[10.4, "The"], [10.51, "next"], [10.62, "stop"], [10.73, "is"], [10.84, "always"], [10.95, "the"], [11.06, "best"], [11.17, "time"], [11.28, "to"], [11.39, "get"], [11.5, "off.*"]]
+];
+
+// 86. The Wrong Bus (v3 original, no voice) — SHOCK OPEN on his face at a bus window, the world streaking past, the LED sign reads
+// SOMEDAY. A road sign for YOUR DREAM flies past the other way. His ticket says PAID: 3 YEARS. He stands, pulls the cord
+// (STOP REQUESTED), the bus brakes, he steps off, drops the ticket, and walks the other way toward the gold sign while the bus leaves.
+initCanvas('c');
+const DUR = 16.0;
+CAP.y = 430; CAP.end = 13.5;
+ATMO = { tint: [255, 190, 120], tintA: 0.05, shafts: 0.06, bokeh: 0.7 };
+const FL = 1380, BT = 900, BB = 1450, HX = 420, T_SIGN = 3.0, T_TICK = 5.0, T_STAND = 7.3, T_PULL = 7.9, T_BRAKE = 8.6, T_STOP = 9.0, T_OUT = 10.0, T_END = 13.6;
+const WINS = [[-60, 220], [260, 540], [580, 860], [900, 1140]];
+function pos(t) { const v = 900; if (t < T_BRAKE) return v * t; const d = Math.min(t - T_BRAKE, 0.45); return v * T_BRAKE + v * (d - d * d / 0.9); }
+function scenery(t) {
+  const p = pos(t);
+  ctx.save(); const g = ctx.createLinearGradient(0, BT, 0, BB); g.addColorStop(0, '#3e3552'); g.addColorStop(0.6, '#a8684a'); g.addColorStop(1, '#5a4030'); ctx.fillStyle = g; ctx.fillRect(-400, BT - 100, 1900, 700); ctx.restore();
+  ctx.save(); ctx.fillStyle = 'rgba(46,38,52,0.95)'; for (let i = -2; i < 8; i++) { const x = ((i * 320 - p * 0.25) % 2240 + 2240) % 2240 - 500; ctx.beginPath(); ctx.ellipse(x, 1150, 260, 90, 0, Math.PI, 0); ctx.fill(); } ctx.restore();
+  ctx.save(); ctx.fillStyle = '#141218'; for (let i = 0; i < 12; i++) { const x = ((i * 200 - p) % 2400 + 2400) % 2400 - 600; ctx.fillRect(x, 940, 22, 320); ctx.beginPath(); ctx.arc(x + 11, 1010, 70, 0, TAU); ctx.fill(); } ctx.restore();
+  // the road sign pointing back the other way
+  const sx = 1500 - (p - pos(T_SIGN));
+  if (sx > -400 && sx < 1600) { ctx.save(); ctx.fillStyle = '#2a2830'; ctx.fillRect(sx - 6, 1000, 12, 300); ctx.translate(sx, 1010); ctx.fillStyle = GOLDL; ctx.shadowColor = 'rgba(255,180,60,0.8)'; ctx.shadowBlur = 20;
+    ctx.beginPath(); ctx.moveTo(-170, 0); ctx.lineTo(-130, -40); ctx.lineTo(150, -40); ctx.lineTo(150, 40); ctx.lineTo(-130, 40); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; txt('YOUR DREAM', 10, 2, 36, INK, 700); ctx.restore(); }
+}
+function busBody(t) {
+  ctx.save(); ctx.fillStyle = '#c9c2b2'; ctx.beginPath(); ctx.rect(-300, BT - 60, 1700, BB - BT + 60);
+  WINS.forEach(([a, b]) => ctx.roundRect(a, 960, b - a, 200, 18)); ctx.fill('evenodd');
+  ctx.fillStyle = '#a49c8a'; ctx.fillRect(-300, BB - 70, 1700, 70); ctx.fillStyle = '#8a3a2e'; ctx.fillRect(-300, 1200, 1700, 24); ctx.restore();
+  // window frames
+  ctx.save(); ctx.strokeStyle = '#8f8878'; ctx.lineWidth = 8; WINS.forEach(([a, b]) => { ctx.beginPath(); ctx.roundRect(a, 960, b - a, 200, 18); ctx.stroke(); }); ctx.restore();
+  // stop cord + LED sign
+  const dip = t > T_PULL && t < T_PULL + 0.3 ? 18 * Math.sin(Math.PI * (t - T_PULL) / 0.3) : 0;
+  ctx.save(); ctx.strokeStyle = '#e8c23a'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(-300, 935); ctx.quadraticCurveTo(470, 940 + dip, 1400, 935); ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.fillStyle = '#121014'; ctx.beginPath(); ctx.roundRect(370, 852, 380, 64, 10); ctx.fill();
+  const req = t >= T_PULL; ctx.font = '700 34px Poppins'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = req ? '#ff5a4a' : '#ffae3a'; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 14;
+  ctx.fillText(req ? 'STOP REQUESTED' : '→ SOMEDAY', 560, 886); ctx.restore();
+  // seats
+  ctx.save(); ctx.fillStyle = '#4a4458'; [[HX - 20], [690], [880]].forEach(([x]) => { ctx.beginPath(); ctx.roundRect(x - 70, FL - 120, 150, 24, 8); ctx.fill(); ctx.beginPath(); ctx.roundRect(x - 84, FL - 260, 24, 160, 8); ctx.fill(); ctx.fillRect(x - 6, FL - 100, 12, 100); }); ctx.restore();
+  ctx.fillStyle = '#2b2830'; ctx.fillRect(-300, FL, 1700, 8);
+}
+function ticket(x, y, s) { ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.rotate(-0.08); ctx.fillStyle = '#efe6cf'; ctx.beginPath(); ctx.roundRect(-70, -40, 140, 80, 8); ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.setLineDash([6, 6]); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(30, -36); ctx.lineTo(30, 36); ctx.stroke(); ctx.setLineDash([]);
+  txt('PAID', -20, -14, 18, '#6b5a3a', 700); txt('3 YEARS', -20, 14, 22, '#1a1612', 700); ctx.restore(); }
+function inside(t) {
+  scenery(t); busBody(t);
+  setFigureScale(1.15);
+  [[690, 0, 'sleep'], [880, 1, 'neutral']].forEach(([x, i, e]) => { const J = solve({ ...sitPose(Math.sin(t * 2 + i)), h: i ? 0.5 : 0.35 }, x, FL - 120, 0); hero(J, { expr: e, t, col: WHITEC, blur: 4, seed: i + 2 }); });
+  setFigureScale(1.3);
+  const stand = smooth(T_STAND, T_STAND + 0.4, t), walk = clamp((t - T_STOP) / 0.8);
+  let P, x = HX, base = FL - 120;
+  if (t < T_STAND) P = { ...sitPose(Math.sin(t * 2)), h: t < 2.4 ? 0.05 : t < T_TICK ? -0.05 : 0.45 };
+  else if (t < T_STOP) { P = mix(sitPose(0), standPose(Math.sin(t * 2)), stand); base = lerp(FL - 120, FL, stand); }
+  else { P = walkPose(t * 6, 0.06); base = FL; x = lerp(HX, 600, walk); }
+  const lurch = t > T_BRAKE && t < T_STOP + 0.2 ? 0.25 * Math.sin(Math.PI * clamp((t - T_BRAKE) / 0.6)) : 0; P = { ...P, t: P.t + lurch };
+  let J = solve(P, x, base, 0);
+  if (t > T_TICK - 0.2 && t < T_STAND) { const [s, e] = armIK(J.sh, [J.sh[0] + 90, J.sh[1] + 40]); P = { ...P, shN: s, elN: e }; J = solve(P, x, base, 0); }
+  if (t > T_STAND + 0.2 && t < T_PULL + 0.4) { const [s, e] = armIK(J.sh, [x + 40, 945]); P = { ...P, shN: s, elN: e }; J = solve(P, x, base, 0); }
+  const ex = t < 2.4 ? 'sad' : t < T_TICK ? 'worried' : t < 7.0 ? 'tired' : t < T_STOP ? 'determined' : 'calm';
+  hero(J, { expr: ex, t, speed: 0.2, blur: 16 + 14 * stand });
+  if (t > T_TICK - 0.2 && t < T_STAND) ticket(J.wN[0] + 30, J.wN[1] - 20, 0.9);
+  if (t >= T_STOP) { const op = smooth(T_STOP, T_STOP + 0.3, t); ctx.save(); ctx.fillStyle = 'rgba(255,214,140,' + (0.25 * op).toFixed(3) + ')'; ctx.fillRect(560 - 80 * op, 960, 160 * op, FL - 960); ctx.restore(); }
+}
+function outside(t) {
+  const u = t - T_OUT, F = 1420;
+  // sunrise on the left (his way), road
+  glowDot(80, 1150, 520, 0.45); ctx.save(); ctx.fillStyle = '#ffd27a'; ctx.shadowColor = 'rgba(255,190,90,1)'; ctx.shadowBlur = 50; ctx.beginPath(); ctx.arc(60, 1180, 110, Math.PI, 0); ctx.fill(); ctx.restore();
+  ctx.fillStyle = '#16151a'; ctx.fillRect(-600, F, 2400, 300); floorLine(F + 2, 0.3);
+  // bus stop pole
+  ctx.save(); ctx.fillStyle = '#5a5866'; ctx.fillRect(640, F - 380, 10, 380); ctx.fillStyle = '#8a8698'; ctx.beginPath(); ctx.roundRect(610, F - 410, 70, 50, 8); ctx.fill(); txt('BUS', 645, F - 384, 20, '#1a1820', 700); ctx.restore();
+  // the bus pulling away to the right (toward SOMEDAY)
+  const bx = 820 + 1400 * Math.pow(clamp((u - 0.2) / 1.6), 2);
+  ctx.save(); ctx.fillStyle = '#c9c2b2'; ctx.beginPath(); ctx.roundRect(bx, F - 400, 900, 350, 30); ctx.fill(); ctx.fillStyle = '#2a2a38'; for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.roundRect(bx + 40 + i * 210, F - 360, 170, 130, 14); ctx.fill(); }
+  ctx.fillStyle = '#8a3a2e'; ctx.fillRect(bx, F - 200, 900, 20); ctx.fillStyle = '#121014'; ctx.beginPath(); ctx.arc(bx + 160, F - 40, 48, 0, TAU); ctx.arc(bx + 740, F - 40, 48, 0, TAU); ctx.fill();
+  ctx.font = '700 30px Poppins'; ctx.fillStyle = '#ffae3a'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('→ SOMEDAY', bx + 40, F - 380); ctx.restore();
+  // the gold signpost his way
+  const k = popK(t, T_OUT + 1.0, 0.3); if (k > 0) { ctx.save(); ctx.translate(260, F - 300); ctx.scale(k, k); ctx.fillStyle = '#5a4a3a'; ctx.fillRect(-6, 0, 12, 300); ctx.fillStyle = GOLDL; ctx.shadowColor = 'rgba(255,180,60,0.9)'; ctx.shadowBlur = 24;
+    ctx.beginPath(); ctx.moveTo(-170, -20); ctx.lineTo(-130, -60); ctx.lineTo(150, -60); ctx.lineTo(150, 20); ctx.lineTo(-130, 20); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; txt('YOUR WAY', 10, -20, 36, INK, 700); ctx.restore(); }
+  // ticket on the ground
+  ctx.save(); ctx.globalAlpha *= 0.85; ticket(600, F - 10, 0.6); ctx.restore();
+  // him: turns, then walks left toward the sign and the sunrise
+  setFigureScale(1.4);
+  const turn = u > 0.9, walk = clamp((u - 1.3) / 3.0), x = lerp(560, 430, walk);
+  const P = walk > 0 && walk < 1 ? walkPose(t * 6, 0.06) : { ...tallPose(Math.sin(t * 2)), h: u < 0.9 ? 0.1 : -0.1 };
+  const J = solve(P, x, F, 0), dr = () => hero(J, { expr: u < 0.9 ? 'calm' : walk > 0 ? 'determined' : 'proud', t, speed: 0.4, blur: 20 + 16 * walk });
+  if (turn) mirrorX(x, dr); else dr();
+}
+function scene(t, c) { if (t < T_OUT) inside(t); else outside(t); }
+CAMK = [[0, HX + 60, 1080, 1.9, 0.02], [0.6, HX + 60, 1085, 1.75, 0], [2.4, 540, 1050, 1.0, 0], [4.8, 540, 1050, 1.02, 0], [5.3, HX + 80, 1120, 1.7, 0], [6.9, HX + 80, 1120, 1.75, 0],
+        [7.2, 540, 1050, 1.05, 0], [T_BRAKE, 540, 1050, 1.08, 0], [T_STOP, 560, 1060, 1.1, 0], [T_OUT - 0.05, 600, 1080, 1.15, 0], [T_OUT, 560, 1100, 1.15, 0], [T_OUT + 1.6, 480, 1080, 1.0, 0], [DUR, 380, 1060, 0.98, 0]];
+SHAKES = [[0, 8, 0.15], [T_BRAKE, 12, 0.4], [T_OUT, 6, 0.15]];
+PUNCHES = [[0, 0.05, 0.12], [T_PULL, 0.05, 0.12], [T_BRAKE, 0.04, 0.2], [T_END, 0.04, 0.12]];
+function screen(t) { if (t < T_BRAKE) speedLines(t, 980, 1180, 8, -1, 0.12, 200); whipLines(t, T_OUT, 0.18, -1); whipLines(t, 2.4, 0.15, -1); }
+window.renderFrame = (t) => frame3(t, { scenes: scene, screen, PH, hook: { lines: [[['On the wrong bus?', 0]], [['Get off', 1], ['.', 0]]], tIn: 0, tOut: 2.4 },
+  after: (t) => { if (t >= T_END) endText(t, T_END, [['Wrong bus?', '#fff'], ['Get off.', GOLDL]], 84); } });
+window.__allSteps = {};
+window.sceneReady = FONTS_READY();
+</script>
+</body>
+</html>
