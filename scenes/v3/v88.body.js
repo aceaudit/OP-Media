@@ -1,0 +1,160 @@
+// 88. 47 Tabs Open (v3 original, no voice) — SHOCK OPEN: a browser window floats over his head (his brain) and tabs keep spawning
+// until there are 47 (rent, emails, the gym plan, "am I behind?"…), memory at 99%, then "(Not Responding)" and a dialog: Wait or
+// Close tabs. He clicks Close tabs and they collapse right to left, 47 → 4. One tab is still playing: Overthinking. He mutes it and
+// closes it. Three tabs were there all along, buried: Today · Rest · People you love. They turn gold, memory drops, he leans back.
+initCanvas('c');
+const DUR = 15.0;
+CAP.y = 430; CAP.end = 12.55;
+ATMO = { tint: [190, 200, 255], tintA: 0.04, shafts: 0.05, bokeh: 0.7 };
+const F = 1440, HX = 300, SEAT = F - 130, WX0 = 110, WY0 = 600, WW = 860, WH = 410, SX0 = 124, SX1 = 956, SY = WY0 + 12, TABH = 50;
+const T_FULL = 2.3, T_NR = 4.5, T_DLG = 4.75, T_CLICK = 5.9, T_C0 = 6.05, T_C1 = 7.6, T_OT = 7.8, T_MUTE = 8.6, T_OTX = 9.1, T_GOLD = 9.6, T_END = 12.6;
+const LABELS = ['Reply to boss', 'Rent due Fri', 'Emails (214)', 'Overthinking', 'Gym plan (Jan)', 'Am I behind?', "Mom's gift", 'Dentist??', 'Text her back',
+  'Learn Spanish', 'Side hustle', 'Taxes', 'Today', '5-year plan', "What's for dinner", 'Laundry', 'Car noise', 'Read 12 books', 'Fix my sleep',
+  'Group chat (88)', 'Old argument', 'Bank balance', 'Wedding RSVP', 'Meal prep', 'Quit sugar', 'Promotion?', 'What they think', 'Rest',
+  'Cancel free trial', 'Renew passport', 'Course #4', 'Budget sheet', 'Water plants', 'Back pain', 'Get fit by May', 'Unread texts', 'Meeting notes',
+  'Startup idea', 'Return package', 'Doctor form', 'People you love', 'Car insurance', 'Pay back Sam', 'Haircut', 'Clean the garage', 'Inbox zero', 'New phone?'];
+const OT = 3, GOLDS = [12, 27, 40], N = LABELS.length;
+const idx = (s) => LABELS.indexOf(s);
+// open / close times
+const OPEN = LABELS.map((_, i) => (i < 23 ? -1 : 0.15 + Math.pow((i - 23) / 23, 0.8) * (T_FULL - 0.25)));
+const rest = LABELS.map((_, i) => i).filter((i) => i !== OT && !GOLDS.includes(i)).sort((a, b) => b - a);
+const CLOSE = LABELS.map(() => 1e9); rest.forEach((i, r) => (CLOSE[i] = T_C0 + Math.pow(r / (rest.length - 1), 0.85) * (T_C1 - T_C0 - 0.2))); CLOSE[OT] = T_OTX;
+const GOLDT = { 12: T_GOLD, 27: T_GOLD + 0.2, 40: T_GOLD + 0.4 };
+const wOf = (i, t) => smooth(OPEN[i], OPEN[i] + 0.12, t) * (1 - smooth(CLOSE[i], CLOSE[i] + 0.2, t));
+const nOpen = (t) => LABELS.reduce((a, _, i) => a + (t >= OPEN[i] + 0.06 && t < CLOSE[i] + 0.1 ? 1 : 0), 0);
+const FLICK = [[2.6, 'Rent due Fri'], [3.0, 'Emails (214)'], [3.4, 'Gym plan (Jan)'], [3.8, 'Am I behind?'], [4.15, 'Taxes']];
+function activeTab(t) {
+  if (t < 2.5) { let a = 0; LABELS.forEach((_, i) => { if (t >= OPEN[i]) a = i; }); return a; }
+  if (t < T_C0) { let a = idx('Rent due Fri'); FLICK.forEach(([ts, s]) => { if (t >= ts) a = idx(s); }); return a; }
+  if (t < T_OT) return -1; if (t < T_OTX + 0.15) return OT; return 12;
+}
+function favCol(i) { const H = [12, 200, 40, 280, 160, 0, 320, 100, 220, 60]; return `hsl(${H[i % H.length]},55%,62%)`; }
+function speaker(x, y, s, t, muted, col = '#f4f2ee') {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-12, -5); ctx.lineTo(-6, -5); ctx.lineTo(2, -12); ctx.lineTo(2, 12); ctx.lineTo(-6, 5); ctx.lineTo(-12, 5); ctx.closePath(); ctx.fill();
+  if (!muted) { const p = 0.6 + 0.4 * Math.sin(t * 10); ctx.globalAlpha *= p; ctx.beginPath(); ctx.arc(4, 0, 7, -0.9, 0.9); ctx.stroke(); ctx.beginPath(); ctx.arc(4, 0, 13, -0.9, 0.9); ctx.stroke(); }
+  else { ctx.strokeStyle = RED; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(8, -9); ctx.lineTo(20, 9); ctx.moveTo(20, -9); ctx.lineTo(8, 9); ctx.stroke(); }
+  ctx.restore();
+}
+function tabStrip(t) {
+  const W = SX1 - SX0, ws = LABELS.map((_, i) => wOf(i, t)), sum = ws.reduce((a, b) => a + b, 0), unit = Math.min(270, W / Math.max(1, sum)), act = activeTab(t);
+  let x = SX0;
+  ws.forEach((w, i) => {
+    const tw = w * unit; if (tw < 2) { x += tw; return; }
+    const gold = GOLDS.includes(i) && t >= GOLDT[i], gk = gold ? smooth(GOLDT[i], GOLDT[i] + 0.25, t) : 0, closing = t > CLOSE[i] ? smooth(CLOSE[i], CLOSE[i] + 0.2, t) : 0;
+    ctx.save(); ctx.globalAlpha *= 1 - closing; ctx.translate(0, -26 * closing);
+    ctx.beginPath(); ctx.roundRect(x + 1.5, SY, tw - 3, TABH, [10, 10, 0, 0]);
+    ctx.fillStyle = i === act ? '#34333d' : '#22212a'; ctx.fill();
+    if (gk > 0) { ctx.save(); ctx.globalAlpha *= gk; ctx.shadowColor = 'rgba(255,180,60,0.9)'; ctx.shadowBlur = 24; ctx.fillStyle = GOLDL; ctx.fill(); ctx.restore(); }
+    ctx.save(); ctx.clip();
+    if (tw > 10) { ctx.fillStyle = gk > 0.5 ? INK : favCol(i); ctx.beginPath(); ctx.arc(x + Math.min(18, tw / 2), SY + TABH / 2, 6, 0, TAU); ctx.fill(); }
+    if (tw > 54) { ctx.font = `600 ${tw > 200 ? 27 : 22}px Poppins`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = gk > 0.5 ? INK : 'rgba(240,238,232,0.85)'; ctx.fillText(LABELS[i], x + 32, SY + TABH / 2 + 1);
+      const fg = ctx.createLinearGradient(x + tw - 26, 0, x + tw - 4, 0); const bg = gk > 0.5 ? 'rgba(255,201,94,' : i === act ? 'rgba(52,51,61,' : 'rgba(34,33,42,'; fg.addColorStop(0, bg + '0)'); fg.addColorStop(1, bg + '1)'); ctx.fillStyle = fg; ctx.fillRect(x + tw - 26, SY, 24, TABH); }
+    if (i === OT && tw > 30) speaker(x + tw - (tw > 54 ? 22 : tw / 2), SY + TABH / 2, 0.8, t, t >= T_MUTE);
+    ctx.restore(); ctx.restore();
+    x += tw;
+  });
+}
+function page(t) {
+  const cx = 540, top = WY0 + 140, act = activeTab(t);
+  ctx.save(); ctx.beginPath(); ctx.rect(WX0 + 6, WY0 + 120, WW - 12, WH - 175); ctx.clip();
+  if (act >= 0 && act !== OT && !(act === 12 && t >= T_OTX)) {
+    // a generic "page" for the worry: big favicon, title, skeleton lines
+    ctx.fillStyle = favCol(act); ctx.beginPath(); ctx.arc(cx - 300, top + 60, 34, 0, TAU); ctx.fill();
+    txt(LABELS[act], cx - 246, top + 62, 52, '#f4f2ee', 700, 'left');
+    ctx.fillStyle = 'rgba(255,255,255,0.10)'; [[0, 640], [1, 560], [2, 600]].forEach(([k, w]) => { ctx.beginPath(); ctx.roundRect(cx - 330, top + 130 + k * 38, w, 18, 9); ctx.fill(); });
+  } else if (act < 0) {
+    // the count, falling
+    const n = nOpen(t); txt(String(n), cx, top + 80, 150, n > 10 ? '#ff8a7e' : GOLDL, 700, 'center', n > 10 ? 'rgba(255,90,70,0.5)' : 'rgba(255,180,60,0.6)');
+    txt('TABS OPEN', cx, top + 190, 30, 'rgba(240,238,232,0.7)', 700, 'center', null, 6);
+  } else if (act === OT) {
+    const muted = t >= T_MUTE; speaker(cx - 250, top + 70, 3.0, t, muted, muted ? '#9c9993' : '#f4f2ee');
+    txt(muted ? 'OVERTHINKING — MUTED' : 'OVERTHINKING — NOW PLAYING', cx - 160, top + 38, 24, muted ? '#ff8a7e' : 'rgba(240,238,232,0.6)', 700, 'left', null, 4);
+    txt('“What if…?”', cx - 160, top + 92, 54, muted ? '#9c9993' : '#f4f2ee', 700, 'left');
+    for (let k = 0; k < 18; k++) { const h = muted ? 4 : 10 + 46 * Math.abs(Math.sin(t * 7 + k * 1.7) * Math.sin(t * 3.1 + k)); ctx.fillStyle = muted ? 'rgba(156,153,147,0.6)' : 'rgba(255,138,126,0.85)'; ctx.fillRect(cx - 330 + k * 36, top + 190 - h, 22, h); }
+  } else {
+    const k = popK(t, T_OTX + 0.2, 0.3); ctx.save(); ctx.translate(cx, top + 100); ctx.scale(k, k);
+    txt('Today', 0, -20, 84, GOLDL, 700, 'center', 'rgba(255,180,60,0.7)'); txt('one thing at a time', 0, 62, 32, 'rgba(255,230,180,0.85)', 600); ctx.restore();
+  }
+  ctx.restore();
+}
+function memBar(t) {
+  const n = nOpen(t), u = t < T_GOLD ? clamp(0.12 + 0.87 * n / 47, 0, 0.99) : lerp(clamp(0.12 + 0.87 * 3 / 47), 0.12, smooth(T_GOLD, T_GOLD + 0.6, t));
+  const y = WY0 + WH - 36, col = u > 0.8 ? '#ff6b5e' : u > 0.4 ? '#ffae3a' : GOLDL;
+  txt('MEMORY', WX0 + 30, y, 22, 'rgba(240,238,232,0.6)', 700, 'left', null, 4);
+  bar(WX0 + 160, y - 9, WW - 290, 18, u, col); txt(Math.round(u * 100) + '%', WX0 + WW - 30, y, 24, col, 700, 'right');
+}
+function dialog(t) {
+  const k = popK(t, T_DLG, 0.25) * (1 - smooth(T_CLICK + 0.1, T_CLICK + 0.3, t)); if (k <= 0) return;
+  ctx.save(); ctx.translate(540, 820); ctx.scale(k, k);
+  ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 40; panel(-330, -125, 660, 250, 22, 'rgba(255,255,255,0.3)', 'rgba(30,29,36,0.98)', 3); ctx.shadowBlur = 0;
+  txt("Your brain isn't responding.", 0, -72, 36, '#f4f2ee', 700); txt('You can wait, or close some tabs.', 0, -22, 26, 'rgba(240,238,232,0.7)', 500);
+  panel(-290, 30, 230, 70, 16, 'rgba(255,255,255,0.25)', 'rgba(60,58,68,1)', 2); txt('Wait', -175, 66, 30, 'rgba(240,238,232,0.8)', 700);
+  const press = t >= T_CLICK ? 1 - smooth(T_CLICK, T_CLICK + 0.15, t) * 0.12 : 1;
+  ctx.save(); ctx.translate(165, 65); ctx.scale(press, press); ctx.shadowColor = 'rgba(255,180,60,0.8)'; ctx.shadowBlur = 20 + 20 * (t >= T_CLICK ? 1 : 0); panel(-125, -35, 250, 70, 16, GOLDL, GOLDL, 2); ctx.shadowBlur = 0; txt('Close tabs', 0, 1, 30, INK, 700); ctx.restore();
+  // cursor
+  const u = smooth(5.2, 5.8, t), px = lerp(260, 200, u), py = lerp(230, 82, u); ctx.save(); ctx.translate(px, py); ctx.fillStyle = '#fff'; ctx.strokeStyle = '#111'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 44); ctx.lineTo(11, 34); ctx.lineTo(20, 52); ctx.lineTo(28, 48); ctx.lineTo(19, 30); ctx.lineTo(33, 30); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+  ctx.restore();
+  if (t >= T_CLICK) ringFlash(705, 885, t, T_CLICK, '255,201,94', 30, 260, 0.45, 6);
+}
+function brainWindow(t) {
+  const glow = smooth(T_GOLD, T_GOLD + 0.6, t), nr = smooth(T_NR, T_NR + 0.12, t) * (1 - smooth(T_CLICK, T_CLICK + 0.3, t));
+  const jx = nr > 0 ? 3 * Math.sin(t * 61) * nr : 0;
+  ctx.save(); ctx.translate(jx, 0);
+  ctx.save(); ctx.shadowColor = glow > 0 ? `rgba(255,180,60,${(0.6 * glow).toFixed(3)})` : 'rgba(120,150,255,0.25)'; ctx.shadowBlur = 40; panel(WX0, WY0, WW, WH, 22, glow > 0.5 ? 'rgba(255,201,94,0.7)' : 'rgba(255,255,255,0.18)', 'rgba(17,16,22,0.97)', 3); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.roundRect(WX0, WY0, WW, WH, 22); ctx.clip();
+  ctx.fillStyle = '#121118'; ctx.fillRect(WX0, WY0, WW, SY + TABH - WY0);
+  tabStrip(t);
+  // address bar
+  ctx.fillStyle = '#2b2a33'; ctx.fillRect(WX0, SY + TABH, WW, 58); panel(WX0 + 24, SY + TABH + 10, WW - 48, 38, 19, 'rgba(255,255,255,0.08)', '#1b1a21', 1);
+  txt(nr > 0.5 ? 'brain  (Not Responding)' : 'brain://everything-at-once', WX0 + 50, SY + TABH + 30, 22, nr > 0.5 ? '#ffb0a6' : 'rgba(240,238,232,0.55)', 600, 'left');
+  page(t); memBar(t);
+  if (nr > 0) { ctx.fillStyle = `rgba(210,212,226,${(0.28 * nr).toFixed(3)})`; ctx.fillRect(WX0, WY0, WW, WH);
+    ctx.save(); ctx.translate(540, 830); ctx.rotate(t * 7); ctx.strokeStyle = `rgba(255,255,255,${(0.8 * nr).toFixed(3)})`; ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, 0, 34, 0, 4.4); ctx.stroke(); ctx.restore(); }
+  ctx.restore();
+  // tab-count badge
+  const n = nOpen(t), gold = t >= T_GOLD; ctx.save(); ctx.translate(WX0 + WW - 110, WY0 - 18); ctx.rotate(0.05); ctx.scale(1 + 0.12 * Math.exp(-((t * 9) % 1) * 4) * (t < T_FULL ? 1 : 0), 1 + 0.12 * Math.exp(-((t * 9) % 1) * 4) * (t < T_FULL ? 1 : 0));
+  ctx.shadowColor = gold ? 'rgba(255,180,60,0.8)' : 'rgba(255,80,60,0.7)'; ctx.shadowBlur = 18; panel(-92, -28, 184, 56, 28, gold ? GOLDL : RED, gold ? GOLDL : RED, 2); ctx.shadowBlur = 0; txt(n + ' TABS', 0, 1, 28, gold ? INK : '#fff', 700, 'center', null, 2); ctx.restore();
+  ctx.restore();
+  dialog(t);
+}
+function desk(t) {
+  ctx.save(); ctx.fillStyle = '#3a3542'; ctx.fillRect(470, F - 230, 440, 18); ctx.fillStyle = '#2b2733'; ctx.fillRect(490, F - 212, 16, 212); ctx.fillRect(874, F - 212, 16, 212); ctx.restore();
+  // laptop (side view, screen facing him)
+  const sc = smooth(T_GOLD, T_GOLD + 0.6, t);
+  ctx.save(); const g = ctx.createRadialGradient(690, F - 330, 10, 690, F - 330, 260); g.addColorStop(0, sc > 0 ? 'rgba(255,200,120,0.22)' : 'rgba(150,180,255,0.22)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(430, F - 600, 520, 400); ctx.restore();
+  ctx.save(); ctx.fillStyle = '#8f8c96'; ctx.beginPath(); ctx.roundRect(540, F - 244, 190, 14, 4); ctx.fill(); ctx.strokeStyle = '#8f8c96'; ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(728, F - 238); ctx.lineTo(752, F - 390); ctx.stroke();
+  ctx.strokeStyle = sc > 0 ? 'rgba(255,214,140,0.9)' : 'rgba(170,200,255,0.9)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(721, F - 240); ctx.lineTo(745, F - 388); ctx.stroke(); ctx.restore();
+}
+function chair() { ctx.save(); ctx.fillStyle = '#2f2b38'; ctx.beginPath(); ctx.roundRect(HX - 80, SEAT, 160, 24, 10); ctx.fill(); ctx.beginPath(); ctx.roundRect(HX - 100, SEAT - 230, 26, 250, 12); ctx.fill();
+  ctx.fillRect(HX - 6, SEAT + 24, 12, F - SEAT - 44); ctx.fillRect(HX - 70, F - 22, 140, 10); ctx.fillStyle = '#1c1922'; [HX - 66, HX + 66].forEach((x) => { ctx.beginPath(); ctx.arc(x, F - 9, 9, 0, TAU); ctx.fill(); }); ctx.restore(); }
+const EXT = [[0, 'shock'], [0.6, 'worried'], [2.4, 'strain'], [T_NR, 'tired'], [5.4, 'determined'], [T_OT, 'worried'], [T_MUTE, 'calm'], [T_GOLD, 'happy'], [10.6, 'proud']];
+function person(t) {
+  setFigureScale(1.35);
+  const slump = smooth(T_NR, T_NR + 0.3, t) * (1 - smooth(5.3, 5.7, t)), relax = smooth(10.0, 10.6, t);
+  let P = mix({ ...sitPose(Math.sin(t * 2)), h: 0.12, t: 0.12 }, { ...slumpSitPose(Math.sin(t * 2)), h: 0.4 }, slump);
+  P = { ...P, t: P.t - 0.1 * relax, h: lerp(P.h, -0.15, relax) };
+  let J = solve(P, HX, SEAT, 0);
+  {
+    const typing = t < T_NR ? 7 * Math.sin(t * 31) : t > 5.75 && t < 6.0 ? 10 * Math.sin(Math.PI * (t - 5.75) / 0.25) : 0;
+    const [s1, e1] = armIK(J.sh, [lerp(612, 545, relax), lerp(F - 252 + typing, F - 236, relax)]);
+    const [s2, e2] = armIK(J.sh, [lerp(650, 570, relax), lerp(F - 254 - typing, F - 238, relax)]);
+    P = { ...P, shN: s1, elN: e1, shF: s2, elF: e2 }; J = solve(P, HX, SEAT, 0);
+  }
+  hero(J, { expr: exprAt(EXT, t), t, speed: 0.15, blur: 16 + 14 * smooth(T_GOLD, T_GOLD + 0.5, t) });
+  if (t > 2.4 && t < 6.2) sweat(J.head[0] - 6, J.head[1] - 34, t, 3);
+  // thought dots from his head up to the window
+  ctx.save(); [[0.25, 7], [0.55, 11], [0.85, 15]].forEach(([u, r]) => { const x = lerp(J.head[0] + 40, 420, u), y = lerp(J.head[1] - 70, WY0 + WH + 28, u);
+    ctx.fillStyle = t >= T_GOLD ? 'rgba(255,201,94,0.85)' : 'rgba(240,238,232,0.55)'; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }); ctx.restore();
+}
+function scene(t, c) { floorLine(F + 2, 0.2); chair(); desk(t); person(t); brainWindow(t); }
+CAMK = [[0, 540, 930, 1.1, 0.015], [0.5, 540, 935, 1.08, 0], [2.4, 540, 1010, 1.08, 0], [T_NR, 540, 1010, 1.1, 0], [T_NR + 0.15, 540, 880, 1.25, 0], [5.7, 540, 890, 1.27, 0],
+        [T_C0, 540, 1000, 1.08, 0], [T_OT, 540, 985, 1.1, 0], [T_OT + 0.3, 540, 880, 1.25, 0], [T_OTX, 540, 885, 1.27, 0], [T_GOLD, 540, 1010, 1.08, 0], [DUR, 540, 1015, 1.04, 0]];
+SHAKES = [[0, 8, 0.15], [T_NR, 10, 0.25], [T_CLICK, 5, 0.12]];
+PUNCHES = [[0, 0.05, 0.12], [T_NR, 0.05, 0.14], [T_CLICK, 0.04, 0.1], [T_MUTE, 0.04, 0.1], [T_GOLD, 0.05, 0.12]];
+function screen(t) { whipLines(t, 2.4, 0.15, 1); whipLines(t, T_GOLD, 0.15, -1); }
+window.renderFrame = (t) => frame3(t, { scenes: scene, screen, PH, hook: { lines: [[['Your brain has', 0]], [['47 tabs', 1], [' open.', 0]]], tIn: 0, tOut: 2.4 },
+  after: (t) => { if (t >= T_END) endText(t, T_END, [['Close a few', '#fff'], ['tabs.', GOLDL]], 84); } });
+window.__allSteps = {};
+window.sceneReady = FONTS_READY();
